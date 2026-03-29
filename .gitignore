@@ -1,0 +1,48 @@
+# ==========================================
+# CẤU HÌNH .GITIGNORE CHO FRONTEND
+# ==========================================
+
+# 1. Thư viện Node.js (QUAN TRỌNG NHẤT - Không được push)
+node_modules/
+
+# 2. File môi trường & Bảo mật (Tuyệt đối không push mật khẩu/API Key)
+.env
+.env.*
+*.local
+!.env.example   # Ngoại lệ: Cho phép push file .env.example (để làm mẫu)
+
+# 3. Thư mục chứa code sau khi build (Sản phẩm cuối)
+dist/
+dist-ssr/
+build/
+out/
+
+# 4. Logs (Lịch sử lỗi)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# 5. File hệ điều hành sinh ra (Rác hệ thống)
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 6. File tạm và Cache
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.eslintcache
+.stylelintcache
+
+# 7. Cấu hình của các công cụ lập trình (IDE)
+.vscode/
+.idea/
+*.suo
+*.sln
+
+# 8. Báo cáo Test (Nếu sau này bạn có viết Unit Test)
+coverage/
