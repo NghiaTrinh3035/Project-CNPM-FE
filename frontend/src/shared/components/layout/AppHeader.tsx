@@ -122,14 +122,14 @@ export const AppHeader = () => {
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar>
-                    <AvatarImage src={user.avatar} alt={user.fullName} />
-                    <AvatarFallback>{user.fullName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarImage src={user.avatar} alt={user.fullName ?? ""} />
+                      <AvatarFallback>{(user.fullName ?? "").slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
-                  <p className="font-medium">{user.fullName}</p>
+                  <p className="font-medium">{user.fullName ?? ""}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                   <Badge className="mt-1 w-fit" variant="outline">
                     {user.role}

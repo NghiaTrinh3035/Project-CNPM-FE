@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const createDraft = (): User => ({
   id: `u-staff-${Date.now()}`,
   fullName: "",
+  username: "",
   email: "",
   phone: "",
   role: "STAFF",

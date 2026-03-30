@@ -24,12 +24,12 @@ export class RuleBasedAiAdapter implements AiAssistantAdapter {
     const products = this.context.products;
 
     const byPriceUnder5m = products.filter((p) => (p.salePrice ?? p.price) <= 5_000_000).slice(0, 3);
-    const metalStrap = products.filter((p) => p.strapMaterial.toLowerCase().includes("steel")).slice(0, 3);
-    const highWater = products.filter((p) => /200m|300m/i.test(p.waterResistance)).slice(0, 3);
-    const office = products.filter((p) => p.tags.some((tag) => /office|classic/i.test(tag))).slice(0, 3);
+    const metalStrap = products.filter((p) => (p.strapMaterial ?? "").toLowerCase().includes("steel")).slice(0, 3);
+    const highWater = products.filter((p) => /200m|300m/i.test(p.waterResistance ?? "")).slice(0, 3);
+    const office = products.filter((p) => (p.tags ?? []).some((tag) => /office|classic/i.test(tag))).slice(0, 3);
     const giftMale = products.filter((p) => p.gender !== "FEMALE").slice(0, 3);
     const giftFemale = products.filter((p) => p.gender !== "MALE").slice(0, 3);
-    const automatic = products.filter((p) => /automatic|manual/i.test(p.movementType)).slice(0, 3);
+    const automatic = products.filter((p) => /automatic|manual/i.test(p.movementType ?? "")).slice(0, 3);
 
     if (normalized.includes("dưới 5") || normalized.includes("duoi 5")) {
       return makeMessage(

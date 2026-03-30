@@ -175,11 +175,11 @@ export const OwnerProductsPage = () => {
               saveMutation.mutate({
                 ...editing,
                 specs: [
-                  { label: "Loại máy", value: editing.movementType },
-                  { label: "Mặt kính", value: editing.glassMaterial },
-                  { label: "Chống nước", value: editing.waterResistance },
+                  { label: "Loại máy", value: editing.movementType ?? "" },
+                  { label: "Mặt kính", value: editing.glassMaterial ?? "" },
+                  { label: "Chống nước", value: editing.waterResistance ?? "" },
                 ],
-                tags: editing.tags.length ? editing.tags : [editing.brand],
+                tags: (editing.tags && editing.tags.length ? editing.tags : [editing.brand ?? ""]).filter(Boolean) as string[],
               })
             }
           >

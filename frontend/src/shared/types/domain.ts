@@ -40,36 +40,43 @@ export interface Category {
 
 export interface Product {
   id: string;
-  slug: string;
-  sku: string;
+  slug?: string;
+  sku?: string;
   name: string;
-  brand: string;
+  brand?: string;
   category: Category;
-  description: string;
+  description?: string;
   price: number;
   salePrice?: number;
   stockQuantity: number;
-  movementType: string;
-  glassMaterial: string;
-  waterResistance: string;
-  faceSize: string;
-  thickness: string;
-  strapMaterial: string;
-  strapColor: string;
-  caseColor: string;
-  faceColor: string;
-  gender: GenderTarget;
+  movementType?: string;
+  glassMaterial?: string;
+  waterResistance?: string;
+  faceSize?: string;
+  thickness?: string;
+  strapMaterial?: string;
+  strapColor?: string;
+  wireMaterial?: string;
+  wireColor?: string;
+  caseColor?: string;
+  faceColor?: string;
+  gender?: GenderTarget;
+  color?: string;
+  size?: string;
+  specs?: Array<{ label: string; value: string }>;
   status: ProductStatus;
-  rating: number;
-  reviewCount: number;
+  averageRating?: number;
+  rating?: number;
+  reviewCount?: number;
   images: ProductImage[];
-  specs: Array<{ label: string; value: string }>;
-  tags: string[];
-  isFeatured: boolean;
-  isBestSeller: boolean;
-  isNewArrival: boolean;
-  relatedProducts: string[];
-  createdAt: string;
+  imageUrls?: string[];
+  tags?: string[];
+  isFeatured?: boolean;
+  isBestSeller?: boolean;
+  isNewArrival?: boolean;
+  relatedProducts?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface User {
