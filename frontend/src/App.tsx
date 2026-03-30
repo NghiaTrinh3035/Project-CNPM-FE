@@ -1,5 +1,12 @@
-import { AppRouter } from "@/app/router/AppRouter";
+import { AppProviders } from '@/app/providers/AppProviders'
+import { AppRouter } from '@/app/router/AppRouter'
 
-const App = () => <AppRouter />;
+function App() {
+  return (
+    <AppProviders>
+      <AppRouter />
+    </AppProviders>
+  )
+}
 
-export default App;
+export default App

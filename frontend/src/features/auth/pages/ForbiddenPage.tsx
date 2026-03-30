@@ -1,18 +1,20 @@
-import { ShieldAlert } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom'
+import { ROUTES } from '@/routes/paths'
 
-import { ROUTES } from "@/shared/constants/routes";
-import { Button } from "@/shared/ui/button";
+export function ForbiddenPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-app-bg px-4">
+      <div className="w-full max-w-md rounded-xl border border-app-border bg-white p-8 text-center">
+        <h1 className="text-2xl font-bold text-slate-900">403 - Khong du quyen</h1>
+        <p className="mt-3 text-sm text-slate-500">Ban khong co quyen truy cap trang nay.</p>
+        <Link
+          className="mt-6 inline-flex rounded-lg bg-app-primary px-4 py-2 text-sm font-semibold text-white"
+          to={ROUTES.dashboard}
+        >
+          Ve trang chu
+        </Link>
+      </div>
+    </div>
+  )
+}
 
-export const ForbiddenPage = () => (
-  <section className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center px-4 text-center">
-    <ShieldAlert className="h-12 w-12 text-luxury-gold" />
-    <h1 className="mt-4 font-display text-4xl">Bạn không có quyền truy cập</h1>
-    <p className="mt-2 text-sm text-muted-foreground">
-      Trang này yêu cầu quyền hạn cao hơn. Vui lòng đăng nhập đúng vai trò.
-    </p>
-    <Button className="mt-6" asChild>
-      <Link to={ROUTES.home}>Về trang chủ</Link>
-    </Button>
-  </section>
-);

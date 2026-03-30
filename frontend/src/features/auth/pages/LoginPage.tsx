@@ -1,127 +1,66 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { Lock, Mail } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { z } from "zod";
-import { toast } from "sonner";
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/Button'
+import { FormField } from '@/components/ui/FormField'
+import { loginSchema, type LoginFormValues } from '@/features/auth/schemas/loginSchema'
+import { useAuth } from '@/hooks/useAuth'
+import { ROUTES } from '@/routes/paths'
 
-import { AuthShell } from "@/features/auth/components/AuthShell";
-import { loginSchema } from "@/features/auth/schemas/authSchemas";
-import { authApi } from "@/services/api/authApi";
-import { setAuthToken } from "@/api/axiosClient";
-import { DEMO_ACCOUNTS } from "@/shared/constants/demoAccounts";
-import { ROUTES } from "@/shared/constants/routes";
-import { useAuthStore } from "@/shared/hooks/useAuthStore";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-
-type LoginValues = z.infer<typeof loginSchema>;
-
-export const LoginPage = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const setSession = useAuthStore((state) => state.setSession);
-
-  const form = useForm<LoginValues>({
+export function LoginPage() {
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "customer@example.com",
-      password: "Demo@123",
+      usernameOrEmail: '',
+      password: '',
     },
-  });
+  })
 
-  const loginMutation = useMutation({
-    mutationFn: (input: LoginValues) => authApi.login({ email: input.email, password: input.password }),
-    onSuccess: (resp) => {
-      const session = {
-        token: resp.accessToken,
-        refreshToken: "",
-        user: {
-          id: resp.userId,
-          fullName: resp.username ?? resp.email,
-          email: resp.email,
-          phone: "",
-          role: resp.role as any,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        },
-      } as any;
-
-      setSession(session);
-      setAuthToken(resp.accessToken);
-      toast.success("Đăng nhập thành công.");
-      const redirect = location.state?.from ?? ROUTES.home;
-      navigate(redirect, { replace: true });
-    },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message ?? error?.message ?? "Đăng nhập thất bại";
-      toast.error(message);
-    },
-  });
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      setSubmitError(null)
+      await login(values.usernameOrEmail, values.password)
+      navigate(ROUTES.dashboard)
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Dang nhap that bai. Vui long thu lai.')
+    }
+  }
 
   return (
-    <AuthShell title="Đăng nhập" subtitle="Truy cập tài khoản khách hàng, staff hoặc owner">
-      <form className="space-y-4" onSubmit={form.handleSubmit((values) => loginMutation.mutate(values))}>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Email</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" {...form.register("email")} />
-          </div>
-          {form.formState.errors.email ? (
-            <p className="text-xs text-red-500">{form.formState.errors.email.message}</p>
-          ) : null}
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-app-bg px-4">
+      <div className="w-full max-w-md rounded-xl border border-app-border bg-white p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-slate-900">Dang nhap he thong</h1>
+        <p className="mt-1 text-sm text-slate-500">Nhap tai khoan backend de dang nhap</p>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Mật khẩu</label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-            <Input type="password" className="pl-9" {...form.register("password")} />
-          </div>
-          {form.formState.errors.password ? (
-            <p className="text-xs text-red-500">{form.formState.errors.password.message}</p>
-          ) : null}
-        </div>
+        <form className="mt-5 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <FormField error={errors.usernameOrEmail?.message} label="Username hoac Email" required>
+            <input className="h-11 w-full rounded-lg border border-app-border px-3 text-sm" {...register('usernameOrEmail')} />
+          </FormField>
 
-        <div className="flex items-center justify-between text-sm">
-          <Link className="text-luxury-gold hover:underline" to={ROUTES.auth.forgotPassword}>
-            Quên mật khẩu?
-          </Link>
-          <Link className="text-luxury-gold hover:underline" to={ROUTES.auth.register}>
-            Chưa có tài khoản? Đăng ký ngay
-          </Link>
-        </div>
+          <FormField error={errors.password?.message} label="Mat khau" required>
+            <input
+              className="h-11 w-full rounded-lg border border-app-border px-3 text-sm"
+              type="password"
+              {...register('password')}
+            />
+          </FormField>
 
-        <Button type="submit" className="w-full" variant="luxury" disabled={loginMutation.isPending}>
-          {loginMutation.isPending ? "Đang đăng nhập..." : "Đăng nhập"}
-        </Button>
+          {submitError && <p className="text-sm text-red-600">{submitError}</p>}
 
-        <Button type="button" variant="outline" className="w-full">
-          Đăng nhập bằng Google (UI Placeholder)
-        </Button>
-      </form>
-
-      <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 p-4">
-        <p className="text-sm font-medium">Demo accounts</p>
-        {DEMO_ACCOUNTS.map((account) => (
-          <button
-            key={account.email}
-            type="button"
-            className="w-full rounded-md border border-border/50 px-3 py-2 text-left text-xs hover:border-luxury-gold"
-            onClick={() => {
-              form.setValue("email", account.email);
-              form.setValue("password", account.password);
-            }}
-          >
-            <p className="font-medium">
-              {account.role}: {account.email}
-            </p>
-            <p className="text-muted-foreground">Password: {account.password}</p>
-          </button>
-        ))}
+          <Button className="w-full" disabled={isSubmitting} type="submit">
+            {isSubmitting ? 'Dang xu ly...' : 'Dang nhap'}
+          </Button>
+        </form>
       </div>
-    </AuthShell>
-  );
-};
+    </div>
+  )
+}
+
