@@ -1,0 +1,3 @@
+﻿src/services/productService.ts(1,23): error TS2307: Cannot find module '@/mocks/data/database' or its corresponding type declarations.
+src/services/productService.ts(2,23): error TS2307: Cannot find module '@/services/mock/delay' or its corresponding type declarations.
+src/services/productService.ts(3,30): error TS2307: Cannot find module '@/shared/types/domain' or its corresponding type declarations.

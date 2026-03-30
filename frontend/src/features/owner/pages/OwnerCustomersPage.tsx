@@ -25,10 +25,9 @@ export const OwnerCustomersPage = () => {
     return customers
       .filter((customer) => {
         if (!keyword) return true;
-        return (
-          customer.fullName.toLowerCase().includes(keyword.toLowerCase()) ||
-          customer.email.toLowerCase().includes(keyword.toLowerCase())
-        );
+        const name = (customer.fullName ?? "").toLowerCase();
+        const email = (customer.email ?? "").toLowerCase();
+        return name.includes(keyword.toLowerCase()) || email.includes(keyword.toLowerCase());
       })
       .map((customer) => {
         const customerOrders = orders.filter((order) => order.userId === customer.id);
@@ -60,7 +59,7 @@ export const OwnerCustomersPage = () => {
             {rows.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell>
-                  <p className="font-medium">{customer.fullName}</p>
+                  <p className="font-medium">{customer.fullName ?? ""}</p>
                   <p className="text-xs text-muted-foreground">{customer.phone}</p>
                 </TableCell>
                 <TableCell>{customer.email}</TableCell>

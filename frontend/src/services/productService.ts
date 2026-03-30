@@ -36,10 +36,10 @@ const sortProducts = (products: Product[], sortBy: ProductQueryInput["sortBy"]) 
     case "best-seller":
       return [...products].sort((a, b) => Number(b.isBestSeller) - Number(a.isBestSeller));
     case "top-rated":
-      return [...products].sort((a, b) => b.rating - a.rating);
+      return [...products].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     case "latest":
     default:
-      return [...products].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+      return [...products].sort((a, b) => (Date.parse(b.createdAt ?? "") || 0) - (Date.parse(a.createdAt ?? "") || 0));
   }
 };
 
@@ -49,12 +49,16 @@ export const productService = {
     const db = getDb();
     const page = params.page ?? 1;
     const pageSize = params.pageSize ?? 9;
-    const keyword = params.keyword?.trim().toLowerCase();
+    const keyword = params.keyword ? params.keyword.trim().toLowerCase() : "";
 
-    const filtered = db.products.filter((product) => {
+      const movementFilter = params.movementType ? params.movementType.toLowerCase() : "";
+      const waterFilter = params.waterResistance ? params.waterResistance.toLowerCase() : "";
+      const strapFilter = params.strapMaterial ? params.strapMaterial.toLowerCase() : "";
+
+      const filtered = db.products.filter((product) => {
       if (keyword) {
-        const searchable = `${product.name} ${product.brand} ${product.description} ${product.tags.join(" ")}`;
-        if (!searchable.toLowerCase().includes(keyword)) {
+        const searchable = `${product.name ?? ""} ${product.brand ?? ""} ${product.description ?? ""} ${(product.tags ?? []).join(" ")}`;
+        if (!searchable.toLowerCase().includes(keyword as string)) {
           return false;
         }
       }
@@ -64,13 +68,13 @@ export const productService = {
       if (params.category && product.category.slug !== params.category) {
         return false;
       }
-      if (params.movementType && !product.movementType.toLowerCase().includes(params.movementType.toLowerCase())) {
+      if (movementFilter && !(product.movementType ?? "").toLowerCase().includes(movementFilter as string)) {
         return false;
       }
-      if (params.waterResistance && !product.waterResistance.toLowerCase().includes(params.waterResistance.toLowerCase())) {
+      if (waterFilter && !(product.waterResistance ?? "").toLowerCase().includes(waterFilter as string)) {
         return false;
       }
-      if (params.strapMaterial && !product.strapMaterial.toLowerCase().includes(params.strapMaterial.toLowerCase())) {
+      if (strapFilter && !(product.strapMaterial ?? "").toLowerCase().includes(strapFilter as string)) {
         return false;
       }
       if (params.stockOnly && product.stockQuantity <= 0) {

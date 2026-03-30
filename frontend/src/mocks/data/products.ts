@@ -11,12 +11,12 @@ const createProduct = (
 ): Product => ({
   createdAt: now.toISOString(),
   specs: partial.specs ?? [
-    { label: "Loại máy", value: partial.movementType },
-    { label: "Mặt kính", value: partial.glassMaterial },
-    { label: "Chống nước", value: partial.waterResistance },
-    { label: "Kích thước mặt", value: partial.faceSize },
-    { label: "Độ dày", value: partial.thickness },
-    { label: "Dây đeo", value: partial.strapMaterial },
+    { label: "Loại máy", value: partial.movementType ?? "" },
+    { label: "Mặt kính", value: partial.glassMaterial ?? "" },
+    { label: "Chống nước", value: partial.waterResistance ?? "" },
+    { label: "Kích thước mặt", value: partial.faceSize ?? "" },
+    { label: "Độ dày", value: partial.thickness ?? "" },
+    { label: "Dây đeo", value: partial.strapMaterial ?? "" },
   ],
   relatedProducts: partial.relatedProducts ?? [],
   ...partial,

@@ -9,6 +9,7 @@ export interface MockCredential {
 export const ownerAccount: Owner = {
   id: "u-owner-001",
   fullName: "Nguyen Huu Minh",
+  username: "owner",
   email: "owner@example.com",
   phone: "0909000100",
   role: "OWNER",
@@ -22,6 +23,7 @@ export const staffAccounts: Staff[] = [
   {
     id: "u-staff-001",
     fullName: "Tran Kim Anh",
+    username: "tran.anh",
     email: "staff@example.com",
     phone: "0909000200",
     role: "STAFF",
@@ -34,6 +36,7 @@ export const staffAccounts: Staff[] = [
   {
     id: "u-staff-002",
     fullName: "Le Quoc Tuan",
+    username: "le.tuan",
     email: "tuan.staff@example.com",
     phone: "0909000300",
     role: "STAFF",
@@ -47,6 +50,7 @@ export const customerAccounts: Customer[] = [
   {
     id: "u-cus-001",
     fullName: "Pham Ha Linh",
+    username: "pham.ha.linh",
     email: "customer@example.com",
     phone: "0909000400",
     role: "CUSTOMER",
@@ -69,6 +73,7 @@ export const customerAccounts: Customer[] = [
   {
     id: "u-cus-002",
     fullName: "Doan Minh Khoa",
+    username: "doan.khoa",
     email: "khoa.customer@example.com",
     phone: "0909000500",
     role: "CUSTOMER",

@@ -1,0 +1,17 @@
+﻿12:32:07 PM - Projects in this build: 
+    * tsconfig.app.json
+    * tsconfig.node.json
+    * tsconfig.json
+
+12:32:07 PM - Project 'tsconfig.app.json' is out of date because buildinfo file 'node_modules/.tmp/tsconfig.app.tsbuildinfo' indicates that program needs to report errors.
+
+12:32:07 PM - Building project 'D:/23110131_TrinhDaiNghia/CNPM/UI/Project-CNPM-UI/frontend/tsconfig.app.json'...
+
+src/services/productService.ts(42,54): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/services/productService.ts(42,80): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+12:32:15 PM - Project 'tsconfig.node.json' is out of date because output file 'vite.config.js' does not exist
+
+12:32:15 PM - Building project 'D:/23110131_TrinhDaiNghia/CNPM/UI/Project-CNPM-UI/frontend/tsconfig.node.json'...
+

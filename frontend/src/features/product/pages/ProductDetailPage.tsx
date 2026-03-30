@@ -72,7 +72,7 @@ export const ProductDetailPage = () => {
   const relatedQuery = useQuery({
     queryKey: ["related", productQuery.data?.id],
     queryFn: () => productService.getByIds(productQuery.data?.relatedProducts ?? []),
-    enabled: Boolean(productQuery.data?.relatedProducts.length),
+    enabled: Boolean(productQuery.data?.relatedProducts?.length ?? 0),
   });
 
   const addCartMutation = useMutation({
@@ -300,7 +300,7 @@ export const ProductDetailPage = () => {
             <CardContent className="space-y-4 p-6">
               <p className="text-muted-foreground">{product.description}</p>
               <div className="grid gap-2 sm:grid-cols-2">
-                {product.tags.map((tag) => (
+                {(product.tags ?? []).map((tag) => (
                   <Badge key={tag} variant="outline">
                     {tag}
                   </Badge>
@@ -313,7 +313,7 @@ export const ProductDetailPage = () => {
         <TabsContent value="specs">
           <Card>
             <CardContent className="grid gap-3 p-6 sm:grid-cols-2">
-              {product.specs.map((spec) => (
+              {(product.specs ?? []).map((spec) => (
                 <div key={spec.label} className="rounded-lg border border-border/60 p-3">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{spec.label}</p>
                   <p className="mt-1 font-medium">{spec.value}</p>
