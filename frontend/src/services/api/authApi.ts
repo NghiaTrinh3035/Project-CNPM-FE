@@ -7,6 +7,7 @@ export interface LoginPayload {
 
 export interface RegisterPayload {
     username: string;
+    fullName: string;
     email: string;
     phone: string;
     address: string
@@ -43,6 +44,7 @@ export const authApi = {
   register: async (payload: RegisterPayload): Promise<AuthResponse> => {
     const body = {
       username: payload.username,
+      fullName: payload.fullName,
       email: payload.email,
       phone: payload.phone,
       address: payload.address,
@@ -54,7 +56,10 @@ export const authApi = {
   },
 
   verifyEmail: async (payload: verifyEmailPayload): Promise<AuthResponse> => {
-    const { data } = await axiosClient.post(`${base}/verify-email`, payload);
+    const body = { email: payload.email,
+                    otp: payload.otp
+    };
+    const { data } = await axiosClient.post(`${base}/verify-email`, body);
     return data;
   },
 };

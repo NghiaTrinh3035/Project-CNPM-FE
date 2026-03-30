@@ -54,7 +54,7 @@ export const authService = {
     const id = `u-cus-${toSlug(input.email).replace(/-/g, "").slice(0, 6)}-${Date.now().toString().slice(-4)}`;
     const newCustomer: Customer = {
       id,
-      fullName: input.fullName || input.username || "",
+      fullName: input.fullName,
       email: input.email,
       phone: input.phone,
       username: input.username,
