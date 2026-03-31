@@ -12,8 +12,7 @@ import { Select } from "@/shared/ui/select";
 
 const availableTransitions: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["SHIPPING", "CANCELLED"],
-  SHIPPING: ["DELIVERED", "RETURNED"],
+  CONFIRMED: ["DELIVERED", "CANCELLED"],
   DELIVERED: ["COMPLETED", "RETURNED"],
   COMPLETED: [],
   CANCELLED: [],

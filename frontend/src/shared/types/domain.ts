@@ -5,13 +5,12 @@ export type ProductStatus = "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
 export type OrderStatus =
   | "PENDING"
   | "CONFIRMED"
-  | "SHIPPING"
   | "DELIVERED"
   | "COMPLETED"
   | "CANCELLED"
   | "RETURNED";
 
-export type PaymentMethod = "COD" | "BANK_TRANSFER" | "E_WALLET";
+export type PaymentMethod = "COD" | "BANK_TRANSFER";
 
 export type WarrantyStatus = "RECEIVED" | "PROCESSING" | "REJECTED" | "COMPLETED";
 
@@ -22,7 +21,7 @@ export type NotificationType =
   | "SUPPORT"
   | "SYSTEM";
 
-export type GenderTarget = "MALE" | "FEMALE" | "UNISEX";
+export type GenderTarget = "MALE" | "FEMALE" | "UNISEX" | "OTHER";
 
 export interface ProductImage {
   id: string;
@@ -81,7 +80,7 @@ export interface Product {
 
 export interface User {
   id: string;
-  fullName?: string;
+  fullName: string;
   username: string;
   email: string;
   phone: string;

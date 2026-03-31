@@ -8,8 +8,8 @@ export interface MockCredential {
 
 export const ownerAccount: Owner = {
   id: "u-owner-001",
-  fullName: "Nguyen Huu Minh",
-  username: "owner",
+  fullName: "Nguyễn Hữu Minh",
+  username: "owner.minh",
   email: "owner@example.com",
   phone: "0909000100",
   role: "OWNER",
@@ -22,8 +22,8 @@ export const ownerAccount: Owner = {
 export const staffAccounts: Staff[] = [
   {
     id: "u-staff-001",
-    fullName: "Tran Kim Anh",
-    username: "tran.anh",
+    fullName: "Trần Kim Anh",
+    username: "staff.kimanh",
     email: "staff@example.com",
     phone: "0909000200",
     role: "STAFF",
@@ -35,8 +35,8 @@ export const staffAccounts: Staff[] = [
   },
   {
     id: "u-staff-002",
-    fullName: "Le Quoc Tuan",
-    username: "le.tuan",
+    fullName: "Lê Quốc Tuấn",
+    username: "staff.tuan",
     email: "tuan.staff@example.com",
     phone: "0909000300",
     role: "STAFF",
@@ -49,20 +49,20 @@ export const staffAccounts: Staff[] = [
 export const customerAccounts: Customer[] = [
   {
     id: "u-cus-001",
-    fullName: "Pham Ha Linh",
-    username: "pham.ha.linh",
+    fullName: "Phạm Hà Linh",
+    username: "customer.linh",
     email: "customer@example.com",
     phone: "0909000400",
     role: "CUSTOMER",
     loyaltyTier: "GOLD",
     addresses: [
       {
-        fullName: "Pham Ha Linh",
+        fullName: "Phạm Hà Linh",
         phone: "0909000400",
         province: "TP. HCM",
         district: "Quận 1",
         ward: "Bến Nghé",
-        detailAddress: "23 Nguyen Hue",
+        detailAddress: "23 Nguyễn Huệ",
       },
     ],
     avatar:
@@ -72,8 +72,8 @@ export const customerAccounts: Customer[] = [
   },
   {
     id: "u-cus-002",
-    fullName: "Doan Minh Khoa",
-    username: "doan.khoa",
+    fullName: "Đoàn Minh Khoa",
+    username: "customer.khoa",
     email: "khoa.customer@example.com",
     phone: "0909000500",
     role: "CUSTOMER",

@@ -1,3 +1,4 @@
+import { setAuthToken } from "@/api/axiosClient";
 import type { AuthSession, User } from "@/shared/types/domain";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -17,18 +18,22 @@ export const useAuthStore = create<AuthState>()(
       session: null,
       isAuthenticated: false,
       user: null,
-      setSession: (session) =>
+      setSession: (session) => {
+        setAuthToken(session.token);
         set({
           session,
           isAuthenticated: true,
           user: session.user,
-        }),
-      logout: () =>
+        });
+      },
+      logout: () => {
+        setAuthToken(null);
         set({
           session: null,
           isAuthenticated: false,
           user: null,
-        }),
+        });
+      },
       updateUser: (user) =>
         set((state) => ({
           ...state,

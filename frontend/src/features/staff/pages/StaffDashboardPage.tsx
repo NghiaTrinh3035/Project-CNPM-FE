@@ -22,7 +22,7 @@ export const StaffDashboardPage = () => {
 
   const totalOrders = ordersQuery.data?.length ?? 0;
   const pendingOrders = ordersQuery.data?.filter((item) => item.status === "PENDING").length ?? 0;
-  const shippingOrders = ordersQuery.data?.filter((item) => item.status === "SHIPPING").length ?? 0;
+  const processingOrders = ordersQuery.data?.filter((item) => item.status === "CONFIRMED").length ?? 0;
   const openWarranties = warrantyQuery.data?.filter((item) => item.status !== "COMPLETED").length ?? 0;
   const openTickets = ticketsQuery.data?.filter((item) => item.status !== "RESOLVED").length ?? 0;
 
@@ -33,7 +33,7 @@ export const StaffDashboardPage = () => {
         {[
           { label: "Tổng đơn hàng", value: totalOrders, icon: Package },
           { label: "Chờ xác nhận", value: pendingOrders, icon: ClipboardCheck },
-          { label: "Đang giao", value: shippingOrders, icon: Truck },
+          { label: "Đang xử lý", value: processingOrders, icon: Truck },
           { label: "Bảo hành mở", value: openWarranties, icon: ShieldCheck },
           { label: "Ticket hỗ trợ", value: openTickets, icon: Headset },
         ].map((item) => (

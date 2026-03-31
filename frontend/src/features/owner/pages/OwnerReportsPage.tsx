@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 const statusColor: Record<string, string> = {
   PENDING: "#f59e0b",
   CONFIRMED: "#0ea5e9",
-  SHIPPING: "#6366f1",
   DELIVERED: "#10b981",
   COMPLETED: "#22c55e",
   CANCELLED: "#ef4444",

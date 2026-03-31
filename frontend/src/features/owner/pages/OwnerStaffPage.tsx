@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const createDraft = (): User => ({
   id: `u-staff-${Date.now()}`,
   fullName: "",
-  username: "",
+  username: `staff${Date.now()}`,
   email: "",
   phone: "",
   role: "STAFF",
@@ -98,7 +98,17 @@ export const OwnerStaffPage = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <Input value={draft.fullName} onChange={(event) => setDraft((prev) => ({ ...prev, fullName: event.target.value }))} placeholder="Họ tên" />
-          <Input value={draft.email} onChange={(event) => setDraft((prev) => ({ ...prev, email: event.target.value }))} placeholder="Email" />
+          <Input
+            value={draft.email}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                email: event.target.value,
+                username: event.target.value.split("@")[0] || prev.username,
+              }))
+            }
+            placeholder="Email"
+          />
           <Input value={draft.phone} onChange={(event) => setDraft((prev) => ({ ...prev, phone: event.target.value }))} placeholder="Số điện thoại" />
           <Select
             value={draft.isActive ? "active" : "inactive"}
@@ -107,7 +117,15 @@ export const OwnerStaffPage = () => {
             <option value="active">Hoạt động</option>
             <option value="inactive">Khóa</option>
           </Select>
-          <Button className="w-full" onClick={() => saveMutation.mutate(draft)}>
+          <Button
+            className="w-full"
+            onClick={() =>
+              saveMutation.mutate({
+                ...draft,
+                username: draft.username || draft.email.split("@")[0] || `staff${Date.now()}`,
+              })
+            }
+          >
             Lưu nhân viên
           </Button>
         </CardContent>

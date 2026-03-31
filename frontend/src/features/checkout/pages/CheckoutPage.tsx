@@ -24,7 +24,7 @@ const checkoutSchema = z.object({
   ward: z.string().min(1, "Vui lòng nhập phường/xã"),
   detailAddress: z.string().min(4, "Vui lòng nhập địa chỉ cụ thể"),
   note: z.string().optional(),
-  paymentMethod: z.enum(["COD", "BANK_TRANSFER", "E_WALLET"]),
+  paymentMethod: z.enum(["COD", "BANK_TRANSFER"]),
 });
 
 type CheckoutValues = z.infer<typeof checkoutSchema>;
@@ -39,11 +39,6 @@ const paymentMethods: Array<{ value: PaymentMethod; label: string; description: 
     value: "BANK_TRANSFER",
     label: "Chuyển khoản ngân hàng",
     description: "Chuyển khoản trước để ưu tiên xử lý nhanh đơn hàng.",
-  },
-  {
-    value: "E_WALLET",
-    label: "Ví điện tử",
-    description: "Thanh toán online qua ví điện tử liên kết.",
   },
 ];
 
