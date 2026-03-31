@@ -1,22 +1,20 @@
 import axiosClient from "@/api/axiosClient";
 
 export interface LoginPayload {
-  email: string;
+  usernameOrEmail: string;
   password: string;
 }
 
 export interface RegisterPayload {
-    username: string;
-    fullName: string;
-    email: string;
-    phone: string;
-    address: string
-    gender?: string;
-    password: string;
+  username: string;
+  email: string;
+  phone: string;
+  address: string;
+  gender?: string;
+  password: string;
 }
 
-
-export interface verifyEmailPayload {
+export interface VerifyEmailPayload {
   email: string;
   otp: string;
 }
@@ -32,34 +30,57 @@ export interface AuthResponse {
   expiresInSeconds: number;
 }
 
+export interface OtpResponse {
+  message: string;
+  email: string;
+  expiresInSeconds: number;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 const base = "/auth";
 
 export const authApi = {
   login: async (payload: LoginPayload): Promise<AuthResponse> => {
-    const body = { email: payload.email, password: payload.password };
+    const body = { usernameOrEmail: payload.usernameOrEmail, password: payload.password };
     const { data } = await axiosClient.post<AuthResponse>(`${base}/login`, body);
     return data;
   },
 
-  register: async (payload: RegisterPayload): Promise<AuthResponse> => {
+  register: async (payload: RegisterPayload): Promise<OtpResponse> => {
     const body = {
       username: payload.username,
-      fullName: payload.fullName,
       email: payload.email,
       phone: payload.phone,
       address: payload.address,
       gender: payload.gender,
-      password: payload.password
+      password: payload.password,
     };
-    const { data } = await axiosClient.post(`${base}/register`, body);
+    const { data } = await axiosClient.post<OtpResponse>(`${base}/register`, body);
     return data;
   },
 
-  verifyEmail: async (payload: verifyEmailPayload): Promise<AuthResponse> => {
-    const body = { email: payload.email,
-                    otp: payload.otp
+  verifyEmail: async (payload: VerifyEmailPayload): Promise<AuthResponse> => {
+    const body = {
+      email: payload.email,
+      otp: payload.otp,
     };
-    const { data } = await axiosClient.post(`${base}/verify-email`, body);
+    const { data } = await axiosClient.post<AuthResponse>(`${base}/verify-email`, body);
+    return data;
+  },
+
+  forgotPassword: async (email: string): Promise<OtpResponse> => {
+    const { data } = await axiosClient.post<OtpResponse>(`${base}/forgot-password`, { email });
+    return data;
+  },
+
+  resetPassword: async (payload: ResetPasswordPayload): Promise<{ message: string }> => {
+    const { data } = await axiosClient.post<{ message: string }>(`${base}/reset-password`, payload);
     return data;
   },
 };

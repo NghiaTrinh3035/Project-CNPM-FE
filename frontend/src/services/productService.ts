@@ -1,4 +1,6 @@
+import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
+import { mapBackendCategory, mapBackendProduct, unwrapPage } from "@/services/api/backendMappers";
 import { delay } from "@/services/mock/delay";
 import type { Product } from "@/shared/types/domain";
 
@@ -39,26 +41,78 @@ const sortProducts = (products: Product[], sortBy: ProductQueryInput["sortBy"]) 
       return [...products].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     case "latest":
     default:
-      return [...products].sort((a, b) => (Date.parse(b.createdAt ?? "") || 0) - (Date.parse(a.createdAt ?? "") || 0));
+      return [...products].sort(
+        (a, b) => (Date.parse(b.updatedAt ?? b.createdAt ?? "") || 0) - (Date.parse(a.updatedAt ?? a.createdAt ?? "") || 0),
+      );
+  }
+};
+
+const markCollections = (products: Product[]) => {
+  const byRating = [...products]
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .map((item) => item.id);
+  const byNewest = [...products]
+    .sort((a, b) => (Date.parse(b.updatedAt ?? b.createdAt ?? "") || 0) - (Date.parse(a.updatedAt ?? a.createdAt ?? "") || 0))
+    .map((item) => item.id);
+
+  const featured = new Set(byRating.slice(0, 8));
+  const bestSeller = new Set(byRating.slice(0, 8));
+  const newcomer = new Set(byNewest.slice(0, 8));
+
+  return products.map((product) => ({
+    ...product,
+    isFeatured: featured.has(product.id),
+    isBestSeller: bestSeller.has(product.id),
+    isNewArrival: newcomer.has(product.id),
+  }));
+};
+
+const fetchProductsFromApi = async (): Promise<Product[]> => {
+  const [productsResponse, categoriesResponse] = await Promise.all([
+    axiosClient.get<unknown>("/products"),
+    axiosClient.get<unknown>("/categories"),
+  ]);
+  const categories = unwrapPage<Record<string, unknown>>(categoriesResponse.data).map((item) =>
+    mapBackendCategory(item),
+  );
+  const categoryMap = new Map(categories.map((item) => [item.id, item]));
+
+  const mappedProducts = unwrapPage<Record<string, unknown>>(productsResponse.data).map((item) => {
+    const product = mapBackendProduct(item);
+    const rawCategory = item["category"] as Record<string, unknown> | undefined;
+    const rawCategoryId = (rawCategory?.id as string | undefined) ?? (item["categoryId"] as string | undefined);
+    if (rawCategoryId && categoryMap.has(rawCategoryId)) {
+      product.category = categoryMap.get(rawCategoryId)!;
+    }
+    return product;
+  });
+
+  return markCollections(mappedProducts);
+};
+
+const fetchProductsSafe = async (): Promise<Product[]> => {
+  try {
+    return await fetchProductsFromApi();
+  } catch {
+    await delay(120);
+    return getDb().products;
   }
 };
 
 export const productService = {
   async getAll(params: ProductQueryInput = {}): Promise<ProductQueryResult> {
-    await delay(450);
-    const db = getDb();
     const page = params.page ?? 1;
     const pageSize = params.pageSize ?? 9;
     const keyword = params.keyword ? params.keyword.trim().toLowerCase() : "";
+    const movementFilter = params.movementType ? params.movementType.toLowerCase() : "";
+    const waterFilter = params.waterResistance ? params.waterResistance.toLowerCase() : "";
+    const strapFilter = params.strapMaterial ? params.strapMaterial.toLowerCase() : "";
 
-      const movementFilter = params.movementType ? params.movementType.toLowerCase() : "";
-      const waterFilter = params.waterResistance ? params.waterResistance.toLowerCase() : "";
-      const strapFilter = params.strapMaterial ? params.strapMaterial.toLowerCase() : "";
-
-      const filtered = db.products.filter((product) => {
+    const allProducts = await fetchProductsSafe();
+    const filtered = allProducts.filter((product) => {
       if (keyword) {
         const searchable = `${product.name ?? ""} ${product.brand ?? ""} ${product.description ?? ""} ${(product.tags ?? []).join(" ")}`;
-        if (!searchable.toLowerCase().includes(keyword as string)) {
+        if (!searchable.toLowerCase().includes(keyword)) {
           return false;
         }
       }
@@ -68,13 +122,13 @@ export const productService = {
       if (params.category && product.category.slug !== params.category) {
         return false;
       }
-      if (movementFilter && !(product.movementType ?? "").toLowerCase().includes(movementFilter as string)) {
+      if (movementFilter && !(product.movementType ?? "").toLowerCase().includes(movementFilter)) {
         return false;
       }
-      if (waterFilter && !(product.waterResistance ?? "").toLowerCase().includes(waterFilter as string)) {
+      if (waterFilter && !(product.waterResistance ?? "").toLowerCase().includes(waterFilter)) {
         return false;
       }
-      if (strapFilter && !(product.strapMaterial ?? "").toLowerCase().includes(strapFilter as string)) {
+      if (strapFilter && !(product.strapMaterial ?? "").toLowerCase().includes(strapFilter)) {
         return false;
       }
       if (params.stockOnly && product.stockQuantity <= 0) {
@@ -99,39 +153,51 @@ export const productService = {
   },
 
   async getBySlug(slug: string): Promise<Product | null> {
-    await delay(300);
-    return getDb().products.find((product) => product.slug === slug) ?? null;
+    const products = await fetchProductsSafe();
+    return (
+      products.find((product) => {
+        if (product.slug === slug) {
+          return true;
+        }
+        if (product.id === slug) {
+          return true;
+        }
+        return slug.endsWith(product.id.slice(0, 8));
+      }) ?? null
+    );
   },
 
   async getByIds(ids: string[]): Promise<Product[]> {
-    await delay(220);
+    if (!ids.length) {
+      return [];
+    }
     const set = new Set(ids);
-    return getDb().products.filter((product) => set.has(product.id));
+    const products = await fetchProductsSafe();
+    return products.filter((product) => set.has(product.id));
   },
 
   async getFeatured(): Promise<Product[]> {
-    await delay(220);
-    return getDb().products.filter((product) => product.isFeatured).slice(0, 8);
+    const products = await fetchProductsSafe();
+    return products.filter((product) => product.isFeatured).slice(0, 8);
   },
 
   async getBestSellers(): Promise<Product[]> {
-    await delay(220);
-    return getDb().products.filter((product) => product.isBestSeller).slice(0, 8);
+    const products = await fetchProductsSafe();
+    return products.filter((product) => product.isBestSeller).slice(0, 8);
   },
 
   async getNewArrivals(): Promise<Product[]> {
-    await delay(220);
-    return getDb().products.filter((product) => product.isNewArrival).slice(0, 8);
+    const products = await fetchProductsSafe();
+    return products.filter((product) => product.isNewArrival).slice(0, 8);
   },
 
   async getFilters() {
-    await delay(120);
-    const all = getDb().products;
+    const all = await fetchProductsSafe();
     return {
-      brands: Array.from(new Set(all.map((product) => product.brand))),
-      movementTypes: Array.from(new Set(all.map((product) => product.movementType))),
-      waterResistanceLevels: Array.from(new Set(all.map((product) => product.waterResistance))),
-      strapMaterials: Array.from(new Set(all.map((product) => product.strapMaterial))),
+      brands: Array.from(new Set(all.map((product) => product.brand).filter(Boolean))),
+      movementTypes: Array.from(new Set(all.map((product) => product.movementType).filter(Boolean))),
+      waterResistanceLevels: Array.from(new Set(all.map((product) => product.waterResistance).filter(Boolean))),
+      strapMaterials: Array.from(new Set(all.map((product) => product.strapMaterial).filter(Boolean))),
       categories: Array.from(new Set(all.map((product) => product.category.slug))).map((slug) =>
         all.find((item) => item.category.slug === slug)?.category,
       ),

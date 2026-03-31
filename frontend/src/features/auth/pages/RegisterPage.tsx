@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -9,11 +10,17 @@ import { AuthShell } from "@/features/auth/components/AuthShell";
 import { PasswordStrengthMeter } from "@/features/auth/components/PasswordStrengthMeter";
 import { registerSchema } from "@/features/auth/schemas/authSchemas";
 import { authApi } from "@/services/api/authApi";
+import type { OtpResponse, RegisterPayload } from "@/services/api/authApi";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
-type RegisterValues = z.infer<typeof registerSchema> & { username?: string; address?: string; gender?: string };
+type RegisterValues = z.infer<typeof registerSchema>;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const axiosError = error as AxiosError<{ message?: string }>;
+  return axiosError.response?.data?.message ?? (error instanceof Error ? error.message : fallback);
+};
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -33,25 +40,21 @@ export const RegisterPage = () => {
 
   const registerMutation = useMutation({
     mutationFn: (values: RegisterValues) => {
-      const payload = {
+      const payload: RegisterPayload = {
         username: values.username || values.email.split("@")[0],
-        fullName: values.fullName,
         password: values.password,
         email: values.email,
         phone: values.phone,
         address: values.address || "",
-        gender: (values.gender as any) || null,
+        gender: values.gender ?? undefined,
       };
       return authApi.register(payload);
     },
-    onSuccess: (result: any) => {
+    onSuccess: (result: OtpResponse) => {
       toast.success(result.message ?? "Đăng ký thành công. Vui lòng kiểm tra email.");
       navigate(ROUTES.auth.verifyEmail, { state: { email: result.email ?? form.getValues("email") } });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message ?? error?.message ?? "Đăng ký thất bại";
-      toast.error(message);
-    },
+    onError: (error: unknown) => toast.error(getErrorMessage(error, "Đăng ký thất bại")),
   });
 
   return (
@@ -61,11 +64,11 @@ export const RegisterPage = () => {
           <label className="text-sm font-medium">Tên đăng nhập</label>
           <Input {...form.register("username")} placeholder="username" />
           {form.formState.errors.username ? (
-            <p className="text-xs text-red-500">{(form.formState.errors.username as any)?.message}</p>
+            <p className="text-xs text-red-500">{form.formState.errors.username.message}</p>
           ) : null}
 
           <label className="text-sm font-medium">Họ và tên</label>
-          <Input {...form.register("fullName")} placeholder="Nguyen Van A" />
+          <Input {...form.register("fullName")} placeholder="Nguyễn Văn A" />
           {form.formState.errors.fullName ? (
             <p className="text-xs text-red-500">{form.formState.errors.fullName.message}</p>
           ) : null}
@@ -99,7 +102,7 @@ export const RegisterPage = () => {
             <option value="">Chọn giới tính</option>        
             <option value="MALE">Nam</option>
             <option value="FEMALE">Nữ</option>
-            <option value="UNISEX">Khác</option>
+            <option value="OTHER">Khác</option>
           </select>
         </div>
 

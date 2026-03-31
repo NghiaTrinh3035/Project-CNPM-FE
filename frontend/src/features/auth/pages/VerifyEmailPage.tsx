@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { CheckCircle2, MailCheck } from "lucide-react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -8,12 +10,16 @@ import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
-import { useState } from "react";
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const axiosError = error as AxiosError<{ message?: string }>;
+  return axiosError.response?.data?.message ?? (error instanceof Error ? error.message : fallback);
+};
 
 export const VerifyEmailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState<string>(location.state?.email ?? "");
+  const [email, setEmail] = useState<string>(((location.state as { email?: string } | null)?.email ?? ""));
   const [verified, setVerified] = useState(false);
   const [otp, setOtp] = useState("");
 
@@ -23,10 +29,7 @@ export const VerifyEmailPage = () => {
       setVerified(true);
       toast.success("Xác thực email thành công.");
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message ?? error?.message ?? "Xác thực thất bại";
-      toast.error(message);
-    },
+    onError: (error: unknown) => toast.error(getErrorMessage(error, "Xác thực thất bại")),
   });
 
   return (

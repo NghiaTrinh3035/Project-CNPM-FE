@@ -34,7 +34,7 @@ export const authService = {
     );
 
     if (!account || account.password !== input.password) {
-      throw new Error("Tên người dùng hoặc mật khẩu không chính xác.");
+      throw new Error("Email hoặc mật khẩu không chính xác.");
     }
     if (!account.verified) {
       throw new Error("Tài khoản chưa xác thực email. Vui lòng xác thực trước khi đăng nhập.");
@@ -54,14 +54,14 @@ export const authService = {
     const id = `u-cus-${toSlug(input.email).replace(/-/g, "").slice(0, 6)}-${Date.now().toString().slice(-4)}`;
     const newCustomer: Customer = {
       id,
-      fullName: input.fullName,
+      fullName: input.fullName ?? input.username,
       email: input.email,
       phone: input.phone,
       username: input.username,
       role: "CUSTOMER",
       loyaltyTier: "SILVER",
       address: input.address || "",
-      gender: (input.gender ?? "MALE") as GenderTarget,
+      gender: input.gender ?? "MALE",
       addresses: [],
       isActive: true,
       createdAt: new Date().toISOString(),

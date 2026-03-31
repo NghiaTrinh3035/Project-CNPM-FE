@@ -15,8 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const nextStatusMap: Record<OrderStatus, OrderStatus | null> = {
   PENDING: "CONFIRMED",
-  CONFIRMED: "SHIPPING",
-  SHIPPING: "DELIVERED",
+  CONFIRMED: "DELIVERED",
   DELIVERED: "COMPLETED",
   COMPLETED: null,
   CANCELLED: null,

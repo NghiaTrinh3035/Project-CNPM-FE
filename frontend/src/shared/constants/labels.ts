@@ -3,7 +3,6 @@ import type { OrderStatus, PaymentMethod, ProductStatus, WarrantyStatus } from "
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   PENDING: "Chờ xác nhận",
   CONFIRMED: "Đã xác nhận",
-  SHIPPING: "Đang giao",
   DELIVERED: "Đã giao",
   COMPLETED: "Hoàn tất",
   CANCELLED: "Đã hủy",
@@ -19,7 +18,6 @@ export const PRODUCT_STATUS_LABEL: Record<ProductStatus, string> = {
 export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   COD: "Thanh toán khi nhận hàng",
   BANK_TRANSFER: "Chuyển khoản ngân hàng",
-  E_WALLET: "Ví điện tử",
 };
 
 export const WARRANTY_STATUS_LABEL: Record<WarrantyStatus, string> = {

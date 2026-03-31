@@ -1,16 +1,25 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 
+import { userService } from "@/services/userService";
 import { useAuthStore } from "@/shared/hooks/useAuthStore";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 
 const schema = z.object({
-  fullName: z.string().min(2, "Tên quá ngắn."),
-  phone: z.string().min(9, "Số điện thoại không hợp lệ."),
+  username: z
+    .string()
+    .min(3, "Tên đăng nhập phải có ít nhất 3 ký tự.")
+    .max(50, "Tên đăng nhập tối đa 50 ký tự."),
+  phone: z.string().regex(/^(?:\+84|0)[3-9]\d{8}$/, "Số điện thoại không hợp lệ."),
+  address: z
+    .string()
+    .min(5, "Địa chỉ quá ngắn.")
+    .max(255, "Địa chỉ tối đa 255 ký tự."),
 });
 
 type ProfileFormValues = z.infer<typeof schema>;
@@ -22,8 +31,34 @@ export const ProfilePage = () => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      fullName: user?.fullName ?? "",
+      username: user?.username ?? "",
       phone: user?.phone ?? "",
+      address: user?.address ?? "",
+    },
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: (values: ProfileFormValues) => {
+      if (!user) {
+        throw new Error("Không tìm thấy thông tin người dùng.");
+      }
+      return userService.updateProfile({
+        id: user.id,
+        username: values.username,
+        email: user.email,
+        phone: values.phone,
+        address: values.address,
+        gender: user.gender,
+        role: user.role,
+      });
+    },
+    onSuccess: (updatedUser) => {
+      updateUser(updatedUser);
+      toast.success("Cập nhật hồ sơ thành công.");
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Cập nhật hồ sơ thất bại.";
+      toast.error(message);
     },
   });
 
@@ -39,16 +74,13 @@ export const ProfilePage = () => {
       <CardContent>
         <form
           className="grid gap-4 sm:max-w-xl"
-          onSubmit={form.handleSubmit((values) => {
-            updateUser({ ...user, ...values });
-            toast.success("Cập nhật hồ sơ thành công.");
-          })}
+          onSubmit={form.handleSubmit((values) => updateProfileMutation.mutate(values))}
         >
           <div className="space-y-2">
-            <label className="text-sm font-medium">Họ và tên</label>
-            <Input {...form.register("fullName")} />
-            {form.formState.errors.fullName ? (
-              <p className="text-xs text-red-500">{form.formState.errors.fullName.message}</p>
+            <label className="text-sm font-medium">Tên đăng nhập</label>
+            <Input {...form.register("username")} />
+            {form.formState.errors.username ? (
+              <p className="text-xs text-red-500">{form.formState.errors.username.message}</p>
             ) : null}
           </div>
           <div className="space-y-2">
@@ -62,8 +94,15 @@ export const ProfilePage = () => {
               <p className="text-xs text-red-500">{form.formState.errors.phone.message}</p>
             ) : null}
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Địa chỉ</label>
+            <Input {...form.register("address")} />
+            {form.formState.errors.address ? (
+              <p className="text-xs text-red-500">{form.formState.errors.address.message}</p>
+            ) : null}
+          </div>
           <Button type="submit" className="w-fit">
-            Lưu thay đổi
+            {updateProfileMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </Button>
         </form>
       </CardContent>

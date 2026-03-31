@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { Lock, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -9,7 +10,8 @@ import { toast } from "sonner";
 import { AuthShell } from "@/features/auth/components/AuthShell";
 import { loginSchema } from "@/features/auth/schemas/authSchemas";
 import { authApi } from "@/services/api/authApi";
-import { setAuthToken } from "@/api/axiosClient";
+import type { AuthSession } from "@/shared/types/domain";
+import type { UserRole } from "@/shared/types/domain";
 import { DEMO_ACCOUNTS } from "@/shared/constants/demoAccounts";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuthStore } from "@/shared/hooks/useAuthStore";
@@ -17,6 +19,18 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
 type LoginValues = z.infer<typeof loginSchema>;
+
+const normalizeRole = (role: string): UserRole => {
+  if (role === "OWNER" || role === "STAFF" || role === "CUSTOMER") {
+    return role;
+  }
+  return "CUSTOMER";
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const axiosError = error as AxiosError<{ message?: string }>;
+  return axiosError.response?.data?.message ?? (error instanceof Error ? error.message : fallback);
+};
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -26,51 +40,49 @@ export const LoginPage = () => {
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "customer@example.com",
+      usernameOrEmail: "customer@example.com",
       password: "Demo@123",
     },
   });
 
   const loginMutation = useMutation({
-    mutationFn: (input: LoginValues) => authApi.login({ email: input.email, password: input.password }),
+    mutationFn: (input: LoginValues) =>
+      authApi.login({ usernameOrEmail: input.usernameOrEmail, password: input.password }),
     onSuccess: (resp) => {
-      const session = {
+      const session: AuthSession = {
         token: resp.accessToken,
         refreshToken: "",
         user: {
           id: resp.userId,
+          username: resp.username || resp.email.split("@")[0],
           fullName: resp.username ?? resp.email,
           email: resp.email,
           phone: "",
-          role: resp.role as any,
+          role: normalizeRole(resp.role),
           isActive: true,
           createdAt: new Date().toISOString(),
         },
-      } as any;
+      };
 
       setSession(session);
-      setAuthToken(resp.accessToken);
       toast.success("Đăng nhập thành công.");
-      const redirect = location.state?.from ?? ROUTES.home;
+      const redirect = (location.state as { from?: string } | null)?.from ?? ROUTES.home;
       navigate(redirect, { replace: true });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message ?? error?.message ?? "Đăng nhập thất bại";
-      toast.error(message);
-    },
+    onError: (error: unknown) => toast.error(getErrorMessage(error, "Đăng nhập thất bại")),
   });
 
   return (
     <AuthShell title="Đăng nhập" subtitle="Truy cập tài khoản khách hàng, staff hoặc owner">
       <form className="space-y-4" onSubmit={form.handleSubmit((values) => loginMutation.mutate(values))}>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Email</label>
+          <label className="text-sm font-medium">Email hoặc username</label>
           <div className="relative">
             <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" {...form.register("email")} />
+            <Input className="pl-9" {...form.register("usernameOrEmail")} />
           </div>
-          {form.formState.errors.email ? (
-            <p className="text-xs text-red-500">{form.formState.errors.email.message}</p>
+          {form.formState.errors.usernameOrEmail ? (
+            <p className="text-xs text-red-500">{form.formState.errors.usernameOrEmail.message}</p>
           ) : null}
         </div>
 
@@ -111,7 +123,7 @@ export const LoginPage = () => {
             type="button"
             className="w-full rounded-md border border-border/50 px-3 py-2 text-left text-xs hover:border-luxury-gold"
             onClick={() => {
-              form.setValue("email", account.email);
+              form.setValue("usernameOrEmail", account.email);
               form.setValue("password", account.password);
             }}
           >

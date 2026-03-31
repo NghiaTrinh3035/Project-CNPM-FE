@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.email("Email không hợp lệ."),
+  usernameOrEmail: z
+    .string()
+    .trim()
+    .min(3, "Vui lòng nhập email hoặc tên đăng nhập."),
   password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự."),
 });
 
@@ -15,7 +18,7 @@ export const registerSchema = z
       .min(9, "Số điện thoại không hợp lệ.")
       .max(11, "Số điện thoại không hợp lệ."),
     address: z.string().min(1, "Địa chỉ là bắt buộc."),
-    gender: z.enum(["MALE", "FEMALE", "UNISEX"]).optional(),
+    gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
     password: z
       .string()
       .min(8, "Mật khẩu tối thiểu 8 ký tự.")
