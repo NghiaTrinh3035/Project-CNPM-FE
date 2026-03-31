@@ -3,6 +3,7 @@ import type {
   CartItem,
   Category,
   Notification,
+  NotificationType,
   Order,
   OrderItem,
   OrderStatus,
@@ -33,6 +34,7 @@ const PRODUCT_STATUS_SET = new Set<ProductStatus>([
 ]);
 
 const ROLE_SET = new Set<UserRole>(["CUSTOMER", "STAFF", "OWNER"]);
+const NOTIFICATION_TYPE_SET = new Set<NotificationType>(["ORDER", "WARRANTY", "PROMOTION", "SUPPORT", "SYSTEM"]);
 
 const nowIso = () => new Date().toISOString();
 
@@ -216,7 +218,16 @@ type BackendVoucher = {
 type BackendNotification = {
   id?: string;
   title?: string;
+  message?: string;
   content?: string;
+  type?: string;
+  href?: string;
+  directUrl?: string;
+  userId?: string;
+  receiverId?: string;
+  isRead?: boolean;
+  read?: boolean;
+  createdAt?: string | number | Date;
   timeCreated?: string | number | Date;
   receiver?: { id?: string };
 };
@@ -477,12 +488,18 @@ export const mapBackendVoucher = (raw: BackendVoucher | null | undefined): Vouch
   };
 };
 
+const normalizeNotificationType = (value: unknown): NotificationType => {
+  const normalized = pickString(value).toUpperCase() as NotificationType;
+  return NOTIFICATION_TYPE_SET.has(normalized) ? normalized : "SYSTEM";
+};
+
 export const mapBackendNotification = (raw: BackendNotification | null | undefined): Notification => ({
   id: pickString(raw?.id, `n-${Date.now()}`),
-  userId: pickString(raw?.receiver?.id),
+  userId: pickString(raw?.receiver?.id ?? raw?.receiverId ?? raw?.userId),
   title: pickString(raw?.title, "Thông báo"),
-  message: pickString(raw?.content),
-  type: "SYSTEM",
-  isRead: false,
-  createdAt: toIso(raw?.timeCreated),
+  message: pickString(raw?.content ?? raw?.message),
+  type: normalizeNotificationType(raw?.type),
+  href: pickString(raw?.directUrl ?? raw?.href) || undefined,
+  isRead: Boolean(raw?.isRead ?? raw?.read),
+  createdAt: toIso(raw?.timeCreated ?? raw?.createdAt),
 });
