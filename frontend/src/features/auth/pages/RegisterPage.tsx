@@ -42,6 +42,7 @@ export const RegisterPage = () => {
     mutationFn: (values: RegisterValues) => {
       const payload: RegisterPayload = {
         username: values.username || values.email.split("@")[0],
+        fullName: values.fullName || values.username || values.email.split("@")[0],
         password: values.password,
         email: values.email,
         phone: values.phone,

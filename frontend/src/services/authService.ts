@@ -4,7 +4,7 @@ import type { AuthSession, Customer, User, GenderTarget } from "@/shared/types/d
 import { toSlug } from "@/shared/utils/slug";
 
 export interface LoginInput {
-  email: string;
+  usernameOrEmail: string;
   password: string;
 }
 
@@ -15,7 +15,7 @@ export interface RegisterInput {
   username: string;
   address?: string;
   gender?: GenderTarget;
-  fullName?: string;
+  fullName: string;
 }
 
 const credentialStore = [...authCredentials];
@@ -30,7 +30,7 @@ export const authService = {
   async login(input: LoginInput): Promise<AuthSession> {
     await delay(400);
     const account = credentialStore.find(
-      (item) => item.user.email.toLowerCase() === input.email.toLowerCase()
+      (item) => item.user.email.toLowerCase() === input.usernameOrEmail.toLowerCase() || item.user.username === input.usernameOrEmail
     );
 
     if (!account || account.password !== input.password) {
@@ -46,7 +46,7 @@ export const authService = {
   async register(input: RegisterInput) {
     await delay(450);
     const exists = credentialStore.some(
-      (item) => item.user.email.toLowerCase() === input.email.toLowerCase()
+      (item) => item.user.email.toLowerCase() === input.email.toLowerCase() || item.user.username === input.username
     );
     if (exists) {
       throw new Error("Email hoặc tên người dùng đã tồn tại. Vui lòng dùng thông tin khác.");
@@ -54,7 +54,7 @@ export const authService = {
     const id = `u-cus-${toSlug(input.email).replace(/-/g, "").slice(0, 6)}-${Date.now().toString().slice(-4)}`;
     const newCustomer: Customer = {
       id,
-      fullName: input.fullName ?? input.username,
+      fullName: input.fullName,
       email: input.email,
       phone: input.phone,
       username: input.username,
