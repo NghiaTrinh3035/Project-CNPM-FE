@@ -7,6 +7,7 @@ export interface LoginPayload {
 
 export interface RegisterPayload {
   username: string;
+  fullName: string;
   email: string;
   phone: string;
   address: string;
@@ -55,6 +56,7 @@ export const authApi = {
   register: async (payload: RegisterPayload): Promise<OtpResponse> => {
     const body = {
       username: payload.username,
+      fullName: payload.fullName,
       email: payload.email,
       phone: payload.phone,
       address: payload.address,
