@@ -46,6 +46,11 @@ export interface CustomerListResult {
   totalPages: number;
 }
 
+export interface CustomerLockPayload {
+  customerId: string;
+  isActive: boolean;
+}
+
 let voucherCache: Voucher[] = [];
 
 const mergeVouchers = (source: Voucher[], extra: Voucher[]) => {
@@ -293,6 +298,16 @@ export const adminService = {
       await axiosClient.delete(`/customers/${customerId}`);
     } catch (error) {
       throw new Error(toApiErrorMessage(error, "Khong the xoa khach hang."));
+    }
+  },
+
+  async setCustomerActiveStatus({ customerId, isActive }: CustomerLockPayload): Promise<User> {
+    try {
+      const path = isActive ? "unlock" : "lock";
+      const { data } = await axiosClient.patch(`/customers/${customerId}/${path}`);
+      return mapBackendUser(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Khong the cap nhat trang thai khach hang."));
     }
   },
 
