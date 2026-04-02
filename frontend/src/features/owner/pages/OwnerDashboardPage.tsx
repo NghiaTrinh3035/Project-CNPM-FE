@@ -23,7 +23,7 @@ export const OwnerDashboardPage = () => {
 
   return (
     <section className="space-y-5">
-      <h1 className="font-display text-3xl">Owner Overview</h1>
+      <h1 className="font-display text-3xl">Tổng quan Chủ cửa hàng</h1>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
@@ -62,7 +62,7 @@ export const OwnerDashboardPage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Best seller chart</CardTitle>
+            <CardTitle>Biểu đồ sản phẩm bán chạy</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {overview?.bestSellerStats.map((item) => (
@@ -78,7 +78,7 @@ export const OwnerDashboardPage = () => {
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent orders</CardTitle>
+            <CardTitle>Đơn hàng gần đây</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {overview?.recentOrders.map((order) => (
@@ -97,7 +97,7 @@ export const OwnerDashboardPage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Low stock alerts</CardTitle>
+            <CardTitle>Cảnh báo tồn kho thấp</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {overview?.lowStockProducts.length ? (

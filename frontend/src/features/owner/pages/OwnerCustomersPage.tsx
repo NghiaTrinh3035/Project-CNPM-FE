@@ -16,8 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const toGenderLabel = (gender?: User["gender"]) => {
   if (gender === "MALE") return "Nam";
-  if (gender === "FEMALE") return "Nu";
-  return "Khac";
+  if (gender === "FEMALE") return "Nữ";
+  return "Khác";
 };
 
 export const OwnerCustomersPage = () => {
@@ -38,7 +38,7 @@ export const OwnerCustomersPage = () => {
   const deleteMutation = useMutation({
     mutationFn: adminService.removeCustomer,
     onSuccess: () => {
-      toast.success("Da xoa khach hang.");
+      toast.success("Đã xóa khách hàng.");
       queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
       queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
       setDeleteTarget(null);
@@ -48,7 +48,7 @@ export const OwnerCustomersPage = () => {
   const lockMutation = useMutation({
     mutationFn: adminService.setCustomerActiveStatus,
     onSuccess: (_, variables) => {
-      toast.success(variables.isActive ? "Da mo khoa khach hang." : "Da khoa khach hang.");
+      toast.success(variables.isActive ? "Đã mở khóa khách hàng." : "Đã khóa khách hàng.");
       queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
       queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
       setLockTarget(null);
@@ -61,7 +61,7 @@ export const OwnerCustomersPage = () => {
   const promoteMutation = useMutation({
     mutationFn: adminService.promoteCustomerToStaff,
     onSuccess: () => {
-      toast.success("Da nang role khach hang thanh nhan vien.");
+      toast.success("Đã nâng quyền khách hàng thành nhân viên.");
       queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
       queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
       queryClient.invalidateQueries({ queryKey: ["owner-staff"] });
@@ -90,7 +90,7 @@ export const OwnerCustomersPage = () => {
     <>
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle>Quan ly khach hang</CardTitle>
+          <CardTitle>Quản lý khách hàng</CardTitle>
           <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm theo tên hoặc email..." />
         </CardHeader>
         <CardContent>
@@ -98,12 +98,12 @@ export const OwnerCustomersPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
+                <TableHead>Tên</TableHead>
+                <TableHead>Số điện thoại</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead className="text-right">Thao tac</TableHead>
+                <TableHead>Địa chỉ</TableHead>
+                <TableHead>Giới tính</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -127,11 +127,11 @@ export const OwnerCustomersPage = () => {
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => setLockTarget(customer)}>
                         {customer.isActive ? <Lock className="mr-1 h-4 w-4" /> : <LockOpen className="mr-1 h-4 w-4" />}
-                        {customer.isActive ? "Lock" : "Unlock"}
+                        {customer.isActive ? "Khóa" : "Mở khóa"}
                       </Button>
                       <Button variant="danger" size="sm" onClick={() => setDeleteTarget(customer)}>
                         <Trash2 className="mr-1 h-4 w-4" />
-                        Delete
+                        Xóa
                       </Button>
                       <Button
                         size="sm"
@@ -139,7 +139,7 @@ export const OwnerCustomersPage = () => {
                         onClick={() => setPromoteTarget(customer)}
                       >
                         <UserRoundCog className="mr-1 h-4 w-4" />
-                        Nang role
+                        Nâng quyền
                       </Button>
                     </div>
                   </TableCell>
@@ -150,7 +150,7 @@ export const OwnerCustomersPage = () => {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-muted-foreground">
-              Trang {page} / {Math.max(totalPages, 1)} - Tong {totalItems} khach hang
+              Trang {page} / {Math.max(totalPages, 1)} - Tổng {totalItems} khách hàng
             </div>
             <div className="flex items-center gap-2">
               <Select
@@ -161,19 +161,19 @@ export const OwnerCustomersPage = () => {
                   setPage(1);
                 }}
               >
-                <option value="10">10 / page</option>
-                <option value="20">20 / page</option>
-                <option value="50">50 / page</option>
+                <option value="10">10 / trang</option>
+                <option value="20">20 / trang</option>
+                <option value="50">50 / trang</option>
               </Select>
               <Button variant="outline" disabled={page <= 1 || customersQuery.isFetching} onClick={() => setPage((prev) => prev - 1)}>
-                Prev
+                Trước
               </Button>
               <Button
                 variant="outline"
                 disabled={page >= Math.max(totalPages, 1) || customersQuery.isFetching}
                 onClick={() => setPage((prev) => prev + 1)}
               >
-                Next
+                Sau
               </Button>
             </div>
           </div>
@@ -190,16 +190,16 @@ export const OwnerCustomersPage = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{lockTarget?.isActive ? "Xac nhan khoa tai khoan" : "Xac nhan mo khoa tai khoan"}</DialogTitle>
+            <DialogTitle>{lockTarget?.isActive ? "Xác nhận khóa tài khoản" : "Xác nhận mở khóa tài khoản"}</DialogTitle>
             <DialogDescription>
               {lockTarget?.isActive
-                ? `Ban co chac chan muon khoa tai khoan ${lockTarget?.fullName || "nay"} khong?`
-                : `Ban co chac chan muon mo khoa tai khoan ${lockTarget?.fullName || "nay"} khong?`}
+                ? `Bạn có chắc chắn muốn khóa tài khoản ${lockTarget?.fullName || "này"} không?`
+                : `Bạn có chắc chắn muốn mở khóa tài khoản ${lockTarget?.fullName || "này"} không?`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setLockTarget(null)}>
-              Huy
+              Hủy
             </Button>
             <Button
               variant="outline"
@@ -211,7 +211,7 @@ export const OwnerCustomersPage = () => {
                 lockMutation.mutate({ customerId: lockTarget.id, isActive: !lockTarget.isActive });
               }}
             >
-              {lockMutation.isPending ? "Dang xu ly..." : lockTarget?.isActive ? "Khoa" : "Mo khoa"}
+              {lockMutation.isPending ? "Đang xử lý..." : lockTarget?.isActive ? "Khóa" : "Mở khóa"}
             </Button>
           </div>
         </DialogContent>
@@ -227,14 +227,14 @@ export const OwnerCustomersPage = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Xac nhan xoa khach hang</DialogTitle>
+            <DialogTitle>Xác nhận xóa khách hàng</DialogTitle>
             <DialogDescription>
-              Ban co chac chan muon xoa khach hang {deleteTarget?.fullName || "này"} khong?
+              Bạn có chắc chắn muốn xóa khách hàng {deleteTarget?.fullName || "này"} không?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Huy
+              Hủy
             </Button>
             <Button
               variant="danger"
@@ -245,7 +245,7 @@ export const OwnerCustomersPage = () => {
                 }
               }}
             >
-              {deleteMutation.isPending ? "Dang xoa..." : "Xoa"}
+              {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
             </Button>
           </div>
         </DialogContent>
@@ -261,14 +261,14 @@ export const OwnerCustomersPage = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Xac nhan nang role</DialogTitle>
+            <DialogTitle>Xác nhận nâng quyền</DialogTitle>
             <DialogDescription>
-              Ban co chac chan muon nang khach hang {promoteTarget?.fullName || "nay"} thanh nhan vien khong?
+              Bạn có chắc chắn muốn nâng khách hàng {promoteTarget?.fullName || "này"} thành nhân viên không?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPromoteTarget(null)}>
-              Huy
+              Hủy
             </Button>
             <Button
               className="bg-blue-600 text-white hover:bg-blue-500"
@@ -280,7 +280,7 @@ export const OwnerCustomersPage = () => {
                 promoteMutation.mutate(promoteTarget.id);
               }}
             >
-              {promoteMutation.isPending ? "Dang nang role..." : "Nang role"}
+              {promoteMutation.isPending ? "Đang nâng quyền..." : "Nâng quyền"}
             </Button>
           </div>
         </DialogContent>

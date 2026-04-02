@@ -28,14 +28,14 @@ export const StaffDashboardPage = () => {
 
   return (
     <section className="space-y-5">
-      <h1 className="font-display text-3xl">Staff Overview</h1>
+      <h1 className="font-display text-3xl">Tổng quan Nhân viên</h1>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { label: "Tổng đơn hàng", value: totalOrders, icon: Package },
           { label: "Chờ xác nhận", value: pendingOrders, icon: ClipboardCheck },
           { label: "Đang xử lý", value: processingOrders, icon: Truck },
           { label: "Bảo hành mở", value: openWarranties, icon: ShieldCheck },
-          { label: "Ticket hỗ trợ", value: openTickets, icon: Headset },
+          { label: "Yêu cầu hỗ trợ", value: openTickets, icon: Headset },
         ].map((item) => (
           <Card key={item.label}>
             <CardContent className="space-y-2 p-5">
@@ -53,7 +53,7 @@ export const StaffDashboardPage = () => {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>- Ưu tiên xử lý đơn PENDING trước 12h để đảm bảo SLA giao hàng.</p>
-          <p>- Kiểm tra các ticket AI escalated để phản hồi trong vòng 30 phút.</p>
+          <p>- Kiểm tra các yêu cầu AI chuyển cấp để phản hồi trong vòng 30 phút.</p>
           <p>- Cập nhật trạng thái bảo hành ngay sau khi kỹ thuật viên bàn giao kết quả.</p>
         </CardContent>
       </Card>

@@ -34,7 +34,7 @@ export const OwnerCustomerDetailPage = () => {
 		  <ArrowLeft className="mr-2 h-4 w-4" />
 		  Quay lại
 		</Button>
-		<CardTitle>Chi tiết khách hàng (Owner)</CardTitle>
+		<CardTitle>Chi tiết khách hàng</CardTitle>
 	  </CardHeader>
 	  <CardContent>
 		{!customerQuery.isLoading && !customer ? (
@@ -51,7 +51,7 @@ export const OwnerCustomerDetailPage = () => {
 			<DetailRow label="Địa chỉ" value={customer.address || "--"} />
 			<DetailRow label="Giới tính" value={customer.gender || "--"} />
 			<DetailRow label="Vai trò" value={customer.role} />
-			<DetailRow label="Trạng thái" value={customer.isActive ? "ACTIVE" : "INACTIVE"} />
+			<DetailRow label="Trạng thái" value={customer.isActive ? "Đang hoạt động" : "Đã khóa"} />
 			<DetailRow label="Ngày tạo" value={toShortDate(customer.createdAt)} />
 		  </div>
 		) : null}

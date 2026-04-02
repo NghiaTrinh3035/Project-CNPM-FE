@@ -15,8 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const toGenderLabel = (gender?: User["gender"]) => {
   if (gender === "MALE") return "Nam";
-  if (gender === "FEMALE") return "Nu";
-  return "Khac";
+  if (gender === "FEMALE") return "Nữ";
+  return "Khác";
 };
 
 export const OwnerStaffPage = () => {
@@ -37,7 +37,7 @@ export const OwnerStaffPage = () => {
   const deleteMutation = useMutation({
     mutationFn: adminService.removeStaff,
     onSuccess: () => {
-      toast.success("Da xoa nhan vien.");
+      toast.success("Đã xóa nhân viên.");
       queryClient.invalidateQueries({ queryKey: ["owner-staff"] });
       setDeleteTarget(null);
     },
@@ -49,7 +49,7 @@ export const OwnerStaffPage = () => {
   const lockMutation = useMutation({
     mutationFn: staffApi.setStaffActiveStatus,
     onSuccess: (_, variables) => {
-      toast.success(variables.isActive ? "Da mo khoa nhan vien." : "Da khoa nhan vien.");
+      toast.success(variables.isActive ? "Đã mở khóa nhân viên." : "Đã khóa nhân viên.");
       queryClient.invalidateQueries({ queryKey: ["owner-staff"] });
       setLockTarget(null);
     },
@@ -75,11 +75,11 @@ export const OwnerStaffPage = () => {
     <>
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle>Quan ly nhan vien</CardTitle>
+          <CardTitle>Quản lý nhân viên</CardTitle>
           <Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Tim theo ten, email hoac so dien thoai..."
+            placeholder="Tìm theo tên, email hoặc số điện thoại..."
           />
         </CardHeader>
         <CardContent>
@@ -92,7 +92,7 @@ export const OwnerStaffPage = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Địa chỉ</TableHead>
                 <TableHead>Giới tính</TableHead>
-                <TableHead className="text-right">Thao tac</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -116,11 +116,11 @@ export const OwnerStaffPage = () => {
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => setLockTarget(staff)}>
                         {staff.isActive ? <Lock className="mr-1 h-4 w-4" /> : <LockOpen className="mr-1 h-4 w-4" />}
-                        {staff.isActive ? "Lock" : "Unlock"}
+                        {staff.isActive ? "Khóa" : "Mở khóa"}
                       </Button>
                       <Button variant="danger" size="sm" onClick={() => setDeleteTarget(staff)}>
                         <Trash2 className="mr-1 h-4 w-4" />
-                        Delete
+                        Xóa
                       </Button>
                     </div>
                   </TableCell>
@@ -141,16 +141,16 @@ export const OwnerStaffPage = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{lockTarget?.isActive ? "Xac nhan khoa tai khoan" : "Xac nhan mo khoa tai khoan"}</DialogTitle>
+            <DialogTitle>{lockTarget?.isActive ? "Xác nhận khóa tài khoản" : "Xác nhận mở khóa tài khoản"}</DialogTitle>
             <DialogDescription>
               {lockTarget?.isActive
-                ? `Ban co chac chan muon khoa tai khoan ${lockTarget?.fullName || "nay"} khong?`
-                : `Ban co chac chan muon mo khoa tai khoan ${lockTarget?.fullName || "nay"} khong?`}
+                ? `Bạn có chắc chắn muốn khóa tài khoản ${lockTarget?.fullName || "này"} không?`
+                : `Bạn có chắc chắn muốn mở khóa tài khoản ${lockTarget?.fullName || "này"} không?`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setLockTarget(null)}>
-              Huy
+              Hủy
             </Button>
             <Button
               variant="outline"
@@ -162,7 +162,7 @@ export const OwnerStaffPage = () => {
                 lockMutation.mutate({ staffId: lockTarget.id, isActive: !lockTarget.isActive });
               }}
             >
-              {lockMutation.isPending ? "Dang xu ly..." : lockTarget?.isActive ? "Khoa" : "Mo khoa"}
+              {lockMutation.isPending ? "Đang xử lý..." : lockTarget?.isActive ? "Khóa" : "Mở khóa"}
             </Button>
           </div>
         </DialogContent>
@@ -178,14 +178,14 @@ export const OwnerStaffPage = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Xac nhan xoa nhan vien</DialogTitle>
+            <DialogTitle>Xác nhận xóa nhân viên</DialogTitle>
             <DialogDescription>
-              Ban co chac chan muon xoa nhan vien {deleteTarget?.fullName || "nay"} khong?
+              Bạn có chắc chắn muốn xóa nhân viên {deleteTarget?.fullName || "này"} không?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Huy
+              Hủy
             </Button>
             <Button
               variant="danger"
@@ -197,7 +197,7 @@ export const OwnerStaffPage = () => {
                 deleteMutation.mutate(deleteTarget.id);
               }}
             >
-              {deleteMutation.isPending ? "Dang xoa..." : "Xoa"}
+              {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
             </Button>
           </div>
         </DialogContent>
