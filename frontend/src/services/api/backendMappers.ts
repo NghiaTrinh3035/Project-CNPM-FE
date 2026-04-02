@@ -21,6 +21,7 @@ import { toSlug } from "@/shared/utils/slug";
 const ORDER_STATUS_SET = new Set<OrderStatus>([
   "PENDING",
   "CONFIRMED",
+  "SHIPPING",
   "DELIVERED",
   "COMPLETED",
   "CANCELLED",
@@ -164,6 +165,13 @@ type BackendOrderItem = {
   product?: BackendProduct;
 };
 
+type BackendOrderStatusHistory = {
+  status?: string;
+  note?: string;
+  changedAt?: string | number | Date;
+  changedBy?: string;
+};
+
 type BackendOrder = {
   id?: string;
   orderDate?: string | number | Date;
@@ -193,6 +201,7 @@ type BackendOrder = {
   };
   orderItems?: BackendOrderItem[];
   items?: BackendOrderItem[];
+  timeline?: BackendOrderStatusHistory[];
 };
 
 type BackendReview = {
@@ -427,8 +436,14 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
     detailAddress: parsedAddress.detailAddress,
   };
 
-  const timeline: Order["timeline"] =
-    status === "PENDING"
+  // Use timeline from API if available, otherwise generate basic timeline
+  const timeline: Order["timeline"] = raw?.timeline && raw.timeline.length > 0
+    ? raw.timeline.map((h) => ({
+        status: normalizeOrderStatus(h.status),
+        at: toIso(h.changedAt),
+        note: h.note,
+      }))
+    : status === "PENDING"
       ? [{ status: "PENDING", at: createdAt }]
       : [
           { status: "PENDING", at: createdAt },

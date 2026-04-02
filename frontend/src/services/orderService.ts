@@ -17,7 +17,8 @@ const canTransition = (from: OrderStatus, to: OrderStatus) => {
   }
   const map: Record<OrderStatus, OrderStatus[]> = {
     PENDING: ["CONFIRMED", "CANCELLED"],
-    CONFIRMED: ["DELIVERED", "CANCELLED"],
+    CONFIRMED: ["SHIPPING", "CANCELLED"],
+    SHIPPING: ["DELIVERED"],
     DELIVERED: ["COMPLETED", "RETURNED"],
     COMPLETED: [],
     CANCELLED: [],
@@ -84,13 +85,9 @@ export const orderService = {
     return mapBackendOrder(data);
   },
 
-  async cancelOrder(orderId: string, userId: string): Promise<Order> {
-    await axiosClient.patch(`/orders/${orderId}/cancel`);
-    const refreshed = await this.getOrderById(orderId);
-    if (!refreshed) {
-      throw new Error("Không tìm thấy đơn hàng sau khi hủy.");
-    }
-    return refreshed;
+  async cancelOrder(orderId: string, _userId: string): Promise<Order> {
+    const { data } = await axiosClient.patch(`/orders/${orderId}/cancel`);
+    return mapBackendOrder(data);
   },
 
   async updateOrderStatus(orderId: string, status: OrderStatus, _staffNote?: string): Promise<Order> {
