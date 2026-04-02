@@ -170,9 +170,13 @@ type BackendOrder = {
   createdAt?: string | number | Date;
   totalAmount?: number;
   note?: string;
+  shippingAddress?: string;
   status?: string;
   customerId?: string;
   customerUsername?: string;
+  customerFullName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   customer?: { id?: string; user?: BackendUser };
   voucher?: { voucherCode?: string };
   voucherCode?: string;
@@ -410,12 +414,13 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
     : raw?.payment?.isPaid || raw?.payment?.status === "COMPLETED"
       ? "PAID"
       : "UNPAID";
-  const customerUser = raw?.customer?.user;
-  const rawAddress = pickString(customerUser?.address);
-  const parsedAddress = toShippingAddress(rawAddress);
+
+  // Use customer info from OrderResponse fields
+  const rawShippingAddress = pickString(raw?.customerAddress ?? raw?.shippingAddress);
+  const parsedAddress = toShippingAddress(rawShippingAddress);
   const shippingAddress: ShippingAddress = {
-    fullName: pickString(customerUser?.fullName ?? customerUser?.username ?? raw?.customerUsername, "Khách hàng"),
-    phone: pickString(customerUser?.phone ?? raw?.shipping?.carrierPhone),
+    fullName: pickString(raw?.customerFullName ?? raw?.customerUsername, "Khách hàng"),
+    phone: pickString(raw?.customerPhone),
     province: parsedAddress.province,
     district: parsedAddress.district,
     ward: parsedAddress.ward,
@@ -432,7 +437,7 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
 
   return {
     id,
-    userId: pickString(raw?.customer?.id ?? raw?.customerId),
+    userId: pickString(raw?.customerId),
     items,
     status,
     timeline,
@@ -440,7 +445,7 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
     discount,
     shippingFee: 0,
     total,
-    voucherCode: pickString(raw?.voucher?.voucherCode ?? raw?.voucherCode) || undefined,
+    voucherCode: pickString(raw?.voucherCode) || undefined,
     payment: {
       method: paymentMethod,
       paidAt: raw?.payment?.paymentDate ? toIso(raw.payment.paymentDate) : undefined,

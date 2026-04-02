@@ -107,7 +107,10 @@ export const StaffOrderDetailPage = () => {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["staff-order-detail", id] })}
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["staff-order-detail", id] });
+              orderQuery.refetch();
+            }}
           >
             Làm mới
           </Button>
