@@ -1,0 +1,69 @@
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+
+import { warrantyService } from "@/services/warrantyService";
+import { WARRANTY_STATUS_LABEL } from "@/shared/constants/labels";
+import { ROUTES } from "@/shared/constants/routes";
+import { toShortDate } from "@/shared/lib/format";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+
+const DetailRow = ({ label, value }: { label: string; value: string }) => (
+  <div className="grid grid-cols-3 gap-3 border-b border-border/60 py-3 text-sm last:border-0">
+	<p className="font-semibold">{label}</p>
+	<p className="col-span-2 text-muted-foreground">{value}</p>
+  </div>
+);
+
+export const StaffWarrantyDetailPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const query = useQuery({
+	queryKey: ["staff-warranty-detail", id],
+	queryFn: () => (id ? warrantyService.getById(id) : Promise.resolve(null)),
+	enabled: Boolean(id),
+  });
+
+  const warranty = query.data;
+
+  return (
+	<Card>
+	  <CardHeader className="space-y-3">
+		<Button variant="ghost" className="w-fit" onClick={() => navigate(-1)}>
+		  <ArrowLeft className="mr-2 h-4 w-4" />
+		  Quay lại
+		</Button>
+		<CardTitle>Chi tiết bảo hành (Staff)</CardTitle>
+	  </CardHeader>
+	  <CardContent>
+		{!query.isLoading && !warranty ? (
+		  <p className="text-sm text-muted-foreground">Không tìm thấy phiếu bảo hành. <button className="underline" onClick={() => navigate(ROUTES.staff.warranties)}>Về danh sách</button></p>
+		) : null}
+
+		{warranty ? (
+		  <div>
+			<div className="mb-3 flex items-center gap-2">
+			  <h3 className="text-lg font-semibold">Phiếu #{warranty.id}</h3>
+			  <Badge variant={warranty.status === "REJECTED" ? "danger" : "outline"}>{WARRANTY_STATUS_LABEL[warranty.status]}</Badge>
+			</div>
+			<DetailRow label="Mã bảo hành" value={warranty.id} />
+			<DetailRow label="Đơn hàng" value={warranty.orderId} />
+			<DetailRow label="Dòng sản phẩm" value={warranty.productId} />
+			<DetailRow label="Khách hàng" value={warranty.userId} />
+			<DetailRow label="Mô tả lỗi" value={warranty.description || "--"} />
+			<DetailRow label="Ghi chú kỹ thuật" value={warranty.technicianNote || "--"} />
+			<DetailRow label="Ngày tạo" value={toShortDate(warranty.createdAt)} />
+			<DetailRow label="Cập nhật gần nhất" value={toShortDate(warranty.updatedAt)} />
+		  </div>
+		) : null}
+	  </CardContent>
+	</Card>
+  );
+};
+
+export default StaffWarrantyDetailPage;
+
+

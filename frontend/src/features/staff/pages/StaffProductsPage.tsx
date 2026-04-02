@@ -1,10 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PRODUCT_STATUS_LABEL } from "@/shared/constants/labels";
+import { ROUTES } from "@/shared/constants/routes";
 import { adminService } from "@/services/adminService";
+import { toCurrency } from "@/shared/lib/format";
 import type { ProductStatus } from "@/shared/types/domain";
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
@@ -12,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export const StaffProductsPage = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const productsQuery = useQuery({
     queryKey: ["staff-products"],
@@ -38,8 +44,10 @@ export const StaffProductsPage = () => {
             <TableRow>
               <TableHead>Sản phẩm</TableHead>
               <TableHead>SKU</TableHead>
+              <TableHead>Giá</TableHead>
               <TableHead>Tồn kho</TableHead>
               <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-right">Chi tiết</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -50,6 +58,7 @@ export const StaffProductsPage = () => {
                   <p className="text-xs text-muted-foreground">{product.brand}</p>
                 </TableCell>
                 <TableCell>{product.sku}</TableCell>
+                <TableCell>{toCurrency(product.salePrice ?? product.price)}</TableCell>
                 <TableCell>
                   <Input
                     type="number"
@@ -80,6 +89,15 @@ export const StaffProductsPage = () => {
                       <option value="DISCONTINUED">Ngừng bán</option>
                     </Select>
                   </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate(ROUTES.staff.productDetail.replace(":id", product.id))}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { warrantyService } from "@/services/warrantyService";
 import { WARRANTY_STATUS_LABEL } from "@/shared/constants/labels";
 import { ROUTES } from "@/shared/constants/routes";
-import { warrantyService } from "@/services/warrantyService";
 import type { WarrantyStatus } from "@/shared/types/domain";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -15,14 +15,14 @@ import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
-export const StaffWarrantiesPage = () => {
-  const [note, setNote] = useState("");
-  const [targetId, setTargetId] = useState<string | null>(null);
+export const OwnerWarrantiesPage = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [note, setNote] = useState("");
+  const [targetId, setTargetId] = useState<string | null>(null);
 
   const query = useQuery({
-    queryKey: ["staff-warranties"],
+    queryKey: ["owner-warranties"],
     queryFn: warrantyService.listAll,
   });
 
@@ -31,7 +31,7 @@ export const StaffWarrantiesPage = () => {
       warrantyService.updateStatus(id, status, noteValue),
     onSuccess: () => {
       toast.success("Đã cập nhật bảo hành.");
-      queryClient.invalidateQueries({ queryKey: ["staff-warranties"] });
+      queryClient.invalidateQueries({ queryKey: ["owner-warranties"] });
       setTargetId(null);
       setNote("");
     },
@@ -41,7 +41,7 @@ export const StaffWarrantiesPage = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quản lý bảo hành</CardTitle>
+        <CardTitle>Quản lý bảo hành (Owner)</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -107,7 +107,7 @@ export const StaffWarrantiesPage = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => navigate(ROUTES.staff.warrantyDetail.replace(":id", item.id))}
+                    onClick={() => navigate(ROUTES.owner.warrantyDetail.replace(":id", item.id))}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -120,3 +120,7 @@ export const StaffWarrantiesPage = () => {
     </Card>
   );
 };
+
+export default OwnerWarrantiesPage;
+
+

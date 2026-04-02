@@ -33,7 +33,7 @@ export const OwnerReportsPage = () => {
   });
   const customersQuery = useQuery({
     queryKey: ["owner-report-customers"],
-    queryFn: adminService.listCustomers,
+    queryFn: () => adminService.listCustomers({ page: 1, pageSize: 500 }),
   });
 
   const orderStatusData = Object.entries(
@@ -43,7 +43,7 @@ export const OwnerReportsPage = () => {
     }, {}),
   ).map(([name, value]) => ({ name, value }));
 
-  const topCustomers = (customersQuery.data ?? [])
+  const topCustomers = (customersQuery.data?.items ?? [])
     .map((customer) => {
       const relatedOrders = (ordersQuery.data ?? []).filter((order) => order.userId === customer.id);
       return {

@@ -15,6 +15,7 @@ const staffMenu = [
   { to: ROUTES.staff.orders, label: "Quản lý đơn", icon: Truck },
   { to: ROUTES.staff.warranties, label: "Bảo hành", icon: ShieldCheck },
   { to: ROUTES.staff.products, label: "Sản phẩm", icon: PackageSearch },
+  { to: ROUTES.staff.customers, label: "Khách hàng", icon: Users },
   { to: ROUTES.staff.support, label: "Hỗ trợ khách hàng", icon: Ticket },
 ];
 
@@ -25,6 +26,7 @@ const ownerMenu = [
   { to: ROUTES.owner.suppliers, label: "Nhà cung cấp", icon: Users },
   { to: ROUTES.owner.importReceipts, label: "Phiếu nhập", icon: FileText },
   { to: ROUTES.owner.customers, label: "Khách hàng", icon: Users },
+  { to: ROUTES.owner.warranties, label: "Bảo hành", icon: ShieldCheck },
   { to: ROUTES.owner.staff, label: "Nhân viên", icon: Users },
   { to: ROUTES.owner.vouchers, label: "Voucher", icon: Ticket },
   { to: ROUTES.owner.reports, label: "Báo cáo", icon: BarChart3 },

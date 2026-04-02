@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusCircle } from "lucide-react";
+import { Eye, PlusCircle } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { adminService } from "@/services/adminService";
 import { categories } from "@/mocks/data/categories";
+import { ROUTES } from "@/shared/constants/routes";
 import type { Product, ProductStatus } from "@/shared/types/domain";
 import { toSlug } from "@/shared/utils/slug";
 import { Button } from "@/shared/ui/button";
@@ -51,6 +53,7 @@ const blankProduct: Product = {
 export const OwnerProductsPage = () => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Product>(blankProduct);
+  const navigate = useNavigate();
 
   const productsQuery = useQuery({
     queryKey: ["owner-products"],
@@ -101,11 +104,12 @@ export const OwnerProductsPage = () => {
                 <TableHead>SKU</TableHead>
                 <TableHead>Tồn kho</TableHead>
                 <TableHead>Trạng thái</TableHead>
+                  <TableHead className="text-right">Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {productsQuery.data?.map((product) => (
-                <TableRow key={product.id} onClick={() => setEditing(product)} className="cursor-pointer">
+                  <TableRow key={product.id} onClick={() => setEditing(product)} className="cursor-pointer">
                   <TableCell>
                     <p className="font-medium">{product.name}</p>
                     <p className="text-xs text-muted-foreground">{product.brand}</p>
@@ -113,6 +117,18 @@ export const OwnerProductsPage = () => {
                   <TableCell>{product.sku}</TableCell>
                   <TableCell>{product.stockQuantity}</TableCell>
                   <TableCell>{product.status}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(ROUTES.owner.productDetail.replace(":id", product.id));
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -1,0 +1,316 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+import { CustomerForm } from "@/features/customers/components/CustomerForm";
+import type { CustomerFormValues } from "@/features/customers/schemas/customerSchema";
+import { adminService } from "@/services/adminService";
+import { ROUTES } from "@/shared/constants/routes";
+import type { User } from "@/shared/types/domain";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Select } from "@/shared/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
+
+const toGenderLabel = (gender?: User["gender"]) => {
+  if (gender === "MALE") return "Nam";
+  if (gender === "FEMALE") return "Nu";
+  return "Khac";
+};
+
+export const StaffCustomersPage = () => {
+  const queryClient = useQueryClient();
+  const [keyword, setKeyword] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "update">("create");
+  const [editingCustomer, setEditingCustomer] = useState<User | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const navigate = useNavigate();
+
+  const customersQuery = useQuery({
+  queryKey: ["staff-customers", page, pageSize],
+  queryFn: () => adminService.listCustomers({ page, pageSize }),
+  });
+
+  const createMutation = useMutation({
+	mutationFn: adminService.createCustomer,
+	onSuccess: () => {
+	  toast.success("Them khach hang thanh cong.");
+	  queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
+	  queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
+	  setFormOpen(false);
+	  setEditingCustomer(null);
+	  setSubmitError(null);
+	},
+	onError: (error: Error) => {
+	  toast.error(error.message);
+	},
+  });
+
+  const updateMutation = useMutation({
+	mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof adminService.updateCustomer>[1] }) =>
+	  adminService.updateCustomer(id, payload),
+	onSuccess: () => {
+	  toast.success("Cap nhat khach hang thanh cong.");
+	  queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
+	  queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
+	  setFormOpen(false);
+	  setEditingCustomer(null);
+	  setSubmitError(null);
+	},
+  });
+
+  const deleteMutation = useMutation({
+	mutationFn: adminService.removeCustomer,
+	onSuccess: () => {
+	  toast.success("Da xoa khach hang.");
+	  queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
+	  queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
+	  setDeleteTarget(null);
+	},
+  });
+
+  const rows = useMemo(() => {
+  const customers = customersQuery.data?.items ?? [];
+  const normalizedKeyword = keyword.trim().toLowerCase();
+
+  return customers.filter((customer) => {
+	if (!normalizedKeyword) {
+	  return true;
+	}
+	const searchTarget = `${customer.fullName ?? ""} ${customer.email ?? ""} ${customer.phone ?? ""}`.toLowerCase();
+	return searchTarget.includes(normalizedKeyword);
+  });
+  }, [customersQuery.data?.items, keyword]);
+
+  const totalPages = customersQuery.data?.totalPages ?? 0;
+  const totalItems = customersQuery.data?.total ?? 0;
+
+  const openCreateForm = () => {
+	setFormMode("create");
+	setEditingCustomer(null);
+	setSubmitError(null);
+	setFormOpen(true);
+  };
+
+  const openUpdateForm = (customer: User) => {
+	setFormMode("update");
+	setEditingCustomer(customer);
+	setSubmitError(null);
+	setFormOpen(true);
+  };
+
+  const handleSubmit = async (values: CustomerFormValues) => {
+	const payload = {
+	  username: (values.username || editingCustomer?.username || "").trim(),
+	  fullName: values.fullName.trim(),
+	  email: values.email.trim(),
+	  phone: values.phone.trim(),
+	  address: values.address.trim(),
+	  gender: values.gender,
+	};
+
+	setSubmitError(null);
+
+	try {
+	  if (formMode === "create") {
+		const password = values.password?.trim();
+		if (!password) {
+		  throw new Error("Mat khau khong hop le.");
+		}
+		await createMutation.mutateAsync({ ...payload, password });
+		return;
+	  }
+	  if (!editingCustomer) {
+		throw new Error("Khong tim thay khach hang de cap nhat.");
+	  }
+	  await updateMutation.mutateAsync({ id: editingCustomer.id, payload });
+	} catch (error) {
+	  setSubmitError(error instanceof Error ? error.message : "Khong the luu khach hang.");
+	}
+  };
+
+  return (
+	<>
+	  <Card>
+		<CardHeader className="space-y-3">
+		  <div className="flex items-center justify-between gap-2">
+			<CardTitle>Khach hang (Staff)</CardTitle>
+			<Button onClick={openCreateForm}>
+			  <Plus className="mr-2 h-4 w-4" />
+			  Them khach hang
+			</Button>
+		  </div>
+		  <Input
+			value={keyword}
+			onChange={(event) => setKeyword(event.target.value)}
+			placeholder="Tìm theo tên, email hoặc số điện thoại..."
+		  />
+		</CardHeader>
+		<CardContent>
+		  <Table>
+			<TableHeader>
+			  <TableRow>
+				<TableHead>ID</TableHead>
+				<TableHead>Name</TableHead>
+				<TableHead>Phone</TableHead>
+				<TableHead>Email</TableHead>
+				<TableHead>Address</TableHead>
+				<TableHead>Gender</TableHead>
+				<TableHead className="text-right">Thao tac</TableHead>
+			  </TableRow>
+			</TableHeader>
+			<TableBody>
+			  {rows.map((customer) => (
+				<TableRow key={customer.id}>
+				  <TableCell>{customer.id}</TableCell>
+				  <TableCell>{customer.fullName || "--"}</TableCell>
+				  <TableCell>{customer.phone || "--"}</TableCell>
+				  <TableCell>{customer.email || "--"}</TableCell>
+				  <TableCell>{customer.address || "--"}</TableCell>
+				  <TableCell>{toGenderLabel(customer.gender)}</TableCell>
+				  <TableCell className="text-right">
+					<div className="inline-flex gap-2">
+					  <Button
+						variant="outline"
+						size="sm"
+						onClick={() => navigate(ROUTES.staff.customerDetail.replace(":id", customer.id))}
+					  >
+						<Eye className="mr-1 h-4 w-4" />
+						Xem
+					  </Button>
+					  <Button variant="outline" size="sm" onClick={() => openUpdateForm(customer)}>
+						<Pencil className="mr-1 h-4 w-4" />
+						Update
+					  </Button>
+					  <Button variant="danger" size="sm" onClick={() => setDeleteTarget(customer)}>
+						<Trash2 className="mr-1 h-4 w-4" />
+						Delete
+					  </Button>
+					</div>
+				  </TableCell>
+				</TableRow>
+			  ))}
+			</TableBody>
+		  </Table>
+
+		  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+			<div className="text-sm text-muted-foreground">
+			  Trang {page} / {Math.max(totalPages, 1)} - Tong {totalItems} khach hang
+			</div>
+			<div className="flex items-center gap-2">
+			  <Select
+				className="w-24"
+				value={String(pageSize)}
+				onChange={(event) => {
+				  setPageSize(Number(event.target.value));
+				  setPage(1);
+				}}
+			  >
+				<option value="10">10 / page</option>
+				<option value="20">20 / page</option>
+				<option value="50">50 / page</option>
+			  </Select>
+			  <Button variant="outline" disabled={page <= 1 || customersQuery.isFetching} onClick={() => setPage((prev) => prev - 1)}>
+				Prev
+			  </Button>
+			  <Button
+				variant="outline"
+				disabled={page >= Math.max(totalPages, 1) || customersQuery.isFetching}
+				onClick={() => setPage((prev) => prev + 1)}
+			  >
+				Next
+			  </Button>
+			</div>
+		  </div>
+		</CardContent>
+	  </Card>
+
+	  <Dialog
+		open={formOpen}
+		onOpenChange={(open) => {
+		  setFormOpen(open);
+		  if (!open) {
+			setEditingCustomer(null);
+			setSubmitError(null);
+		  }
+		}}
+	  >
+		<DialogContent>
+		  <DialogHeader>
+			<DialogTitle>{formMode === "create" ? "Them khach hang" : "Cap nhat khach hang"}</DialogTitle>
+			<DialogDescription>
+			  {formMode === "create"
+				? "Nhap thong tin de tao moi khach hang."
+				: "Cap nhat thong tin khach hang da co."}
+			</DialogDescription>
+		  </DialogHeader>
+
+		  <CustomerForm
+			mode={formMode}
+			initialValues={
+			  editingCustomer
+				? {
+					username: editingCustomer.username,
+					fullName: editingCustomer.fullName,
+					email: editingCustomer.email,
+					phone: editingCustomer.phone,
+					address: editingCustomer.address ?? "",
+					gender: editingCustomer.gender === "MALE" || editingCustomer.gender === "FEMALE" ? editingCustomer.gender : "OTHER",
+				  }
+				: undefined
+			}
+			submitError={submitError}
+			onCancel={() => setFormOpen(false)}
+			onSubmit={handleSubmit}
+		  />
+		</DialogContent>
+	  </Dialog>
+
+	  <Dialog
+		open={Boolean(deleteTarget)}
+		onOpenChange={(open) => {
+		  if (!open) {
+			setDeleteTarget(null);
+		  }
+		}}
+	  >
+		<DialogContent>
+		  <DialogHeader>
+			<DialogTitle>Xac nhan xoa khach hang</DialogTitle>
+			<DialogDescription>
+			  Ban co chac chan muon xoa khach hang {deleteTarget?.fullName || "này"} khong?
+			</DialogDescription>
+		  </DialogHeader>
+		  <div className="flex justify-end gap-2">
+			<Button variant="outline" onClick={() => setDeleteTarget(null)}>
+			  Huy
+			</Button>
+			<Button
+			  variant="danger"
+			  disabled={!deleteTarget || deleteMutation.isPending}
+			  onClick={() => {
+				if (deleteTarget) {
+				  deleteMutation.mutate(deleteTarget.id);
+				}
+			  }}
+			>
+			  {deleteMutation.isPending ? "Dang xoa..." : "Xoa"}
+			</Button>
+		  </div>
+		</DialogContent>
+	  </Dialog>
+	</>
+  );
+};
+
+export default StaffCustomersPage;
+
+

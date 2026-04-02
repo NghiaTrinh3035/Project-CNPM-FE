@@ -27,6 +27,11 @@ export const warrantyService = {
     return getDb().warranties;
   },
 
+  async getById(id: string): Promise<WarrantyRequest | null> {
+    await delay(160);
+    return getDb().warranties.find((item) => item.id === id) ?? null;
+  },
+
   async create(input: Omit<WarrantyRequest, "id" | "status" | "updatedAt" | "createdAt">) {
     await delay(280);
     const db = getDb();
