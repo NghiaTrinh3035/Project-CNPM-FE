@@ -21,6 +21,7 @@ import { toSlug } from "@/shared/utils/slug";
 const ORDER_STATUS_SET = new Set<OrderStatus>([
   "PENDING",
   "CONFIRMED",
+  "SHIPPING",
   "DELIVERED",
   "COMPLETED",
   "CANCELLED",
@@ -164,15 +165,26 @@ type BackendOrderItem = {
   product?: BackendProduct;
 };
 
+type BackendOrderStatusHistory = {
+  status?: string;
+  note?: string;
+  changedAt?: string | number | Date;
+  changedBy?: string;
+};
+
 type BackendOrder = {
   id?: string;
   orderDate?: string | number | Date;
   createdAt?: string | number | Date;
   totalAmount?: number;
   note?: string;
+  shippingAddress?: string;
   status?: string;
   customerId?: string;
   customerUsername?: string;
+  customerFullName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   customer?: { id?: string; user?: BackendUser };
   voucher?: { voucherCode?: string };
   voucherCode?: string;
@@ -189,6 +201,7 @@ type BackendOrder = {
   };
   orderItems?: BackendOrderItem[];
   items?: BackendOrderItem[];
+  timeline?: BackendOrderStatusHistory[];
 };
 
 type BackendReview = {
@@ -410,20 +423,27 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
     : raw?.payment?.isPaid || raw?.payment?.status === "COMPLETED"
       ? "PAID"
       : "UNPAID";
-  const customerUser = raw?.customer?.user;
-  const rawAddress = pickString(customerUser?.address);
-  const parsedAddress = toShippingAddress(rawAddress);
+
+  // Use customer info from OrderResponse fields
+  const rawShippingAddress = pickString(raw?.customerAddress ?? raw?.shippingAddress);
+  const parsedAddress = toShippingAddress(rawShippingAddress);
   const shippingAddress: ShippingAddress = {
-    fullName: pickString(customerUser?.fullName ?? customerUser?.username ?? raw?.customerUsername, "Khách hàng"),
-    phone: pickString(customerUser?.phone ?? raw?.shipping?.carrierPhone),
+    fullName: pickString(raw?.customerFullName ?? raw?.customerUsername, "Khách hàng"),
+    phone: pickString(raw?.customerPhone),
     province: parsedAddress.province,
     district: parsedAddress.district,
     ward: parsedAddress.ward,
     detailAddress: parsedAddress.detailAddress,
   };
 
-  const timeline: Order["timeline"] =
-    status === "PENDING"
+  // Use timeline from API if available, otherwise generate basic timeline
+  const timeline: Order["timeline"] = raw?.timeline && raw.timeline.length > 0
+    ? raw.timeline.map((h) => ({
+        status: normalizeOrderStatus(h.status),
+        at: toIso(h.changedAt),
+        note: h.note,
+      }))
+    : status === "PENDING"
       ? [{ status: "PENDING", at: createdAt }]
       : [
           { status: "PENDING", at: createdAt },
@@ -432,7 +452,7 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
 
   return {
     id,
-    userId: pickString(raw?.customer?.id ?? raw?.customerId),
+    userId: pickString(raw?.customerId),
     items,
     status,
     timeline,
@@ -440,7 +460,7 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
     discount,
     shippingFee: 0,
     total,
-    voucherCode: pickString(raw?.voucher?.voucherCode ?? raw?.voucherCode) || undefined,
+    voucherCode: pickString(raw?.voucherCode) || undefined,
     payment: {
       method: paymentMethod,
       paidAt: raw?.payment?.paymentDate ? toIso(raw.payment.paymentDate) : undefined,

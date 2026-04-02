@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { ORDER_STATUS_LABEL } from "@/shared/constants/labels";
@@ -10,9 +11,15 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Select } from "@/shared/ui/select";
 
+// Theo usecase [19] Update Order Status:
+// Pending → Confirmed / Cancelled
+// Confirmed → Shipping / Cancelled
+// Shipping → Delivered
+// Delivered → Completed / Returned
 const availableTransitions: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["DELIVERED", "CANCELLED"],
+  CONFIRMED: ["SHIPPING", "CANCELLED"],
+  SHIPPING: ["DELIVERED"],
   DELIVERED: ["COMPLETED", "RETURNED"],
   COMPLETED: [],
   CANCELLED: [],
@@ -29,15 +36,22 @@ export const StaffOrderDetailPage = () => {
     enabled: Boolean(id),
   });
 
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "">("");
+
   const updateMutation = useMutation({
     mutationFn: (status: OrderStatus) => {
       if (!id) {
         throw new Error("Không có mã đơn.");
       }
+      // CANCELLED phải dùng endpoint riêng
+      if (status === "CANCELLED") {
+        return orderService.cancelOrder(id, order?.userId ?? "");
+      }
       return orderService.updateOrderStatus(id, status, "Cập nhật bởi staff");
     },
     onSuccess: () => {
       toast.success("Cập nhật trạng thái thành công.");
+      setSelectedStatus("");
       queryClient.invalidateQueries({ queryKey: ["staff-order-detail", id] });
       queryClient.invalidateQueries({ queryKey: ["staff-orders"] });
     },
@@ -94,20 +108,40 @@ export const StaffOrderDetailPage = () => {
           <CardTitle>Cập nhật trạng thái</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Select onChange={(event) => updateMutation.mutate(event.target.value as OrderStatus)} defaultValue="">
-            <option value="" disabled>
-              Chọn trạng thái tiếp theo
-            </option>
-            {nextStatuses.map((status) => (
-              <option key={status} value={status}>
-                {ORDER_STATUS_LABEL[status]}
-              </option>
-            ))}
-          </Select>
+          {nextStatuses.length > 0 ? (
+            <>
+              <Select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value as OrderStatus | "")}>
+                <option value="" disabled>
+                  Chọn trạng thái tiếp theo
+                </option>
+                {nextStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {ORDER_STATUS_LABEL[status]}
+                  </option>
+                ))}
+              </Select>
+              <Button
+                className="w-full"
+                disabled={!selectedStatus || updateMutation.isPending}
+                onClick={() => {
+                  if (selectedStatus) {
+                    updateMutation.mutate(selectedStatus);
+                  }
+                }}
+              >
+                Xác nhận
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center">Đơn hàng đã hoàn tất, không thể cập nhật thêm.</p>
+          )}
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["staff-order-detail", id] })}
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["staff-order-detail", id] });
+              orderQuery.refetch();
+            }}
           >
             Làm mới
           </Button>

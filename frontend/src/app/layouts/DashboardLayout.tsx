@@ -67,9 +67,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
               <Button variant="outline" asChild>
                 <Link to={ROUTES.home}>Về trang khách</Link>
               </Button>
-              <Button variant="ghost" asChild>
-                <Link to={role === "OWNER" ? ROUTES.owner.dashboard : ROUTES.staff.dashboard}>Làm mới màn hình</Link>
-              </Button>
+              <Button variant="ghost" onClick={() => window.location.reload()}>Làm mới màn hình</Button>
             </div>
             <Button variant="ghost" onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />

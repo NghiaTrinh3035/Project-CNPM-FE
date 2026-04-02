@@ -5,6 +5,7 @@ export type ProductStatus = "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
 export type OrderStatus =
   | "PENDING"
   | "CONFIRMED"
+  | "SHIPPING"
   | "DELIVERED"
   | "COMPLETED"
   | "CANCELLED"
