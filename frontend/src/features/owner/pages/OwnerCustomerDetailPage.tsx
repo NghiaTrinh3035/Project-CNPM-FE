@@ -52,7 +52,6 @@ export const OwnerCustomerDetailPage = () => {
 			<DetailRow label="Giới tính" value={customer.gender || "--"} />
 			<DetailRow label="Vai trò" value={customer.role} />
 			<DetailRow label="Trạng thái" value={customer.isActive ? "ACTIVE" : "INACTIVE"} />
-			<DetailRow label="Avatar" value={customer.avatar || "--"} />
 			<DetailRow label="Ngày tạo" value={toShortDate(customer.createdAt)} />
 		  </div>
 		) : null}
