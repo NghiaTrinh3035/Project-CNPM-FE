@@ -308,12 +308,9 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
   const rating = toNumber(raw?.averageRating ?? raw?.rating, 0);
   const reviewCount = toNumber(raw?.reviewCount ?? raw?.reviews?.length, 0);
   const updatedAt = toIso(raw?.updatedAt ?? raw?.createdAt);
-  const rawName = pickString(raw?.name);
-  const slug = rawName ? `${toSlug(rawName)}-${id.slice(0, 8)}` : id;
 
   return {
     id,
-    slug,
     sku: pickString(raw?.partNumber, `SKU-${id.slice(0, 8).toUpperCase()}`),
     name: pickString(raw?.name, "Unnamed Product"),
     brand: pickString(raw?.brand, "Unknown"),

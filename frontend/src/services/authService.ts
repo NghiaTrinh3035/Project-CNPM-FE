@@ -94,7 +94,7 @@ export const authService = {
     if (!account) {
       throw new Error("Email chưa được đăng ký.");
     }
-    return { message: "Đã gửi hướng dẫn đặt lại mật khẩu (mock)." };
+    return { message: "Đã gửi hướng dẫn đặt lại mật khẩu." };
   },
 
   async resetPassword(email: string, newPassword: string) {

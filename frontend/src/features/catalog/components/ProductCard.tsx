@@ -23,7 +23,7 @@ export const ProductCard = ({ product, onAddToCart, onCompare }: ProductCardProp
   return (
     <motion.article whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
       <Card className="group overflow-hidden border-border/60 bg-card/60">
-        <Link to={`/product/${product.slug}`} className="block overflow-hidden">
+        <Link to={`/products/${product.id}`} className="block overflow-hidden">
           <img
             src={product.images[0]?.url}
             alt={product.images[0]?.alt ?? product.name}
@@ -34,7 +34,7 @@ export const ProductCard = ({ product, onAddToCart, onCompare }: ProductCardProp
         <CardContent className="space-y-4 p-4">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{product.brand}</p>
-            <Link to={`/product/${product.slug}`} className="line-clamp-2 text-base font-semibold">
+            <Link to={`/products/${product.id}`} className="line-clamp-2 text-base font-semibold">
               {product.name}
             </Link>
           </div>

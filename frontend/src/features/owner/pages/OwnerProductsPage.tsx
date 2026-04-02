@@ -8,7 +8,6 @@ import { adminService } from "@/services/adminService";
 import { categories } from "@/mocks/data/categories";
 import { ROUTES } from "@/shared/constants/routes";
 import type { Product, ProductStatus } from "@/shared/types/domain";
-import { toSlug } from "@/shared/utils/slug";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -18,7 +17,6 @@ import { Textarea } from "@/shared/ui/textarea";
 
 const blankProduct: Product = {
   id: "",
-  slug: "",
   sku: "",
   name: "",
   brand: "",
@@ -144,7 +142,7 @@ export const OwnerProductsPage = () => {
           <Input
             placeholder="Tên sản phẩm"
             value={editing.name}
-            onChange={(event) => setEditing((prev) => ({ ...prev, name: event.target.value, slug: toSlug(event.target.value) }))}
+            onChange={(event) => setEditing((prev) => ({ ...prev, name: event.target.value }))}
           />
           <Input
             placeholder="Thương hiệu"

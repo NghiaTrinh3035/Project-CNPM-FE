@@ -1,5 +1,6 @@
 import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
+import { productApi } from "@/services/api/productApi";
 import { mapBackendCategory, mapBackendProduct, unwrapPage } from "@/services/api/backendMappers";
 import { delay } from "@/services/mock/delay";
 import type { Product, ProductImage } from "@/shared/types/domain";
@@ -75,7 +76,7 @@ const markCollections = (products: Product[]) => {
 
 const fetchProductsFromApi = async (): Promise<Product[]> => {
   const [productsResponse, categoriesResponse] = await Promise.all([
-    axiosClient.get<unknown>("/products"),
+    productApi.getProducts(),
     axiosClient.get<unknown>("/categories"),
   ]);
   const categories = unwrapPage<Record<string, unknown>>(categoriesResponse.data).map((item) =>
@@ -83,7 +84,7 @@ const fetchProductsFromApi = async (): Promise<Product[]> => {
   );
   const categoryMap = new Map(categories.map((item) => [item.id, item]));
 
-  const mappedProducts = unwrapPage<Record<string, unknown>>(productsResponse.data).map((item) => {
+  const mappedProducts = unwrapPage<Record<string, unknown>>(productsResponse).map((item) => {
     const product = mapBackendProduct(item);
     const rawCategory = item["category"] as Record<string, unknown> | undefined;
     const rawCategoryId = (rawCategory?.id as string | undefined) ?? (item["categoryId"] as string | undefined);
@@ -105,7 +106,17 @@ const fetchProductsSafe = async (): Promise<Product[]> => {
   }
 };
 
-const mapProductImage = (input: Record<string, unknown>): ProductImage => ({
+type ApiProductImage = {
+  id?: string;
+  imageUrl?: string;
+  url?: string;
+  altText?: string;
+  alt?: string;
+  isThumbnail?: boolean;
+  isPrimary?: boolean;
+};
+
+const mapProductImage = (input: ApiProductImage): ProductImage => ({
   id: String(input.id ?? `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
   url: String(input.imageUrl ?? input.url ?? ""),
   alt: String(input.altText ?? input.alt ?? ""),
@@ -175,24 +186,14 @@ export const productService = {
     return { items, total, page, pageSize, totalPages };
   },
 
-  async getBySlug(slug: string): Promise<Product | null> {
-    const products = await fetchProductsSafe();
-    return (
-      products.find((product) => {
-        if (product.slug === slug) {
-          return true;
-        }
-        if (product.id === slug) {
-          return true;
-        }
-        return slug.endsWith(product.id.slice(0, 8));
-      }) ?? null
-    );
-  },
-
   async getById(id: string): Promise<Product | null> {
-    const products = await fetchProductsSafe();
-    return products.find((product) => product.id === id) ?? null;
+    try {
+      const data = await productApi.getProductById(id);
+      return mapBackendProduct(data as unknown as Record<string, unknown>);
+    } catch {
+      const products = await fetchProductsSafe();
+      return products.find((product) => product.id === id) ?? null;
+    }
   },
 
   async getByIds(ids: string[]): Promise<Product[]> {
@@ -234,13 +235,11 @@ export const productService = {
 
   async getProductImages(productId: string): Promise<ProductImage[]> {
     try {
-      const { data } = await axiosClient.get<unknown>(`/products/${productId}/images`);
+      const data = await productApi.getImages(productId);
       if (!Array.isArray(data)) {
         return [];
       }
-      return ensurePrimaryImage(
-        data.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object")).map(mapProductImage),
-      );
+      return ensurePrimaryImage(data.map((item) => mapProductImage(item)));
     } catch {
       await delay(100);
       const product = getDb().products.find((item) => item.id === productId);
@@ -252,23 +251,16 @@ export const productService = {
   },
 
   async uploadProductImage(productId: string, payload: ProductImageUploadPayload): Promise<ProductImage> {
-    const formData = new FormData();
-    formData.append("file", payload.file);
-    if (payload.altText?.trim()) {
-      formData.append("altText", payload.altText.trim());
-    }
-    formData.append("isThumbnail", String(Boolean(payload.isPrimary)));
-
     try {
-      const { data } = await axiosClient.post<unknown>(`/products/${productId}/images`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      const data = await productApi.uploadImage(productId, {
+        file: payload.file,
+        altText: payload.altText,
+        isThumbnail: Boolean(payload.isPrimary),
       });
       if (!data || typeof data !== "object") {
         throw new Error("Upload ảnh thất bại.");
       }
-      return mapProductImage(data as Record<string, unknown>);
+      return mapProductImage(data);
     } catch {
       await delay(120);
       const db = getDb();
@@ -295,7 +287,7 @@ export const productService = {
 
   async deleteProductImage(productId: string, imageId: string): Promise<void> {
     try {
-      await axiosClient.delete(`/products/${productId}/images/${imageId}`);
+      await productApi.deleteImage(productId, imageId);
     } catch {
       await delay(100);
       const db = getDb();
@@ -307,4 +299,24 @@ export const productService = {
       product.images = remaining;
     }
   },
+
+  async compareProducts(productAId: string, productBId: string): Promise<Product[]> {
+    try {
+      const data = await productApi.compare(productAId, productBId);
+      if (!Array.isArray(data)) {
+        throw new Error("So sánh sản phẩm thất bại.");
+      }
+      return data.map((item) => mapBackendProduct(item as unknown as Record<string, unknown>));
+    }
+    catch {
+      const products = await fetchProductsSafe();
+      const productA = products.find((item) => item.id === productAId);
+      const productB = products.find((item) => item.id === productBId);
+      if (!productA || !productB) {
+        throw new Error("Không tìm thấy sản phẩm để so sánh.");
+      }
+      return [productA, productB];
+    }
+  },
 };
+
