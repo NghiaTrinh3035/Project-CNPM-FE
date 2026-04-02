@@ -13,6 +13,7 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
+import { Select } from "@/shared/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
 const toGenderLabel = (gender?: User["gender"]) => {
@@ -29,11 +30,13 @@ export const OwnerCustomersPage = () => {
   const [editingCustomer, setEditingCustomer] = useState<User | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const navigate = useNavigate();
 
   const customersQuery = useQuery({
-    queryKey: ["owner-customers"],
-    queryFn: adminService.listCustomers,
+    queryKey: ["owner-customers", page, pageSize],
+    queryFn: () => adminService.listCustomers({ page, pageSize }),
   });
 
   const createMutation = useMutation({
@@ -75,7 +78,7 @@ export const OwnerCustomersPage = () => {
   });
 
   const rows = useMemo(() => {
-    const customers = customersQuery.data ?? [];
+    const customers = customersQuery.data?.items ?? [];
     return customers
       .filter((customer) => {
         if (!keyword) return true;
@@ -83,7 +86,10 @@ export const OwnerCustomersPage = () => {
         const email = (customer.email ?? "").toLowerCase();
         return name.includes(keyword.toLowerCase()) || email.includes(keyword.toLowerCase());
       });
-  }, [customersQuery.data, keyword]);
+  }, [customersQuery.data?.items, keyword]);
+
+  const totalPages = customersQuery.data?.totalPages ?? 0;
+  const totalItems = customersQuery.data?.total ?? 0;
 
   const openCreateForm = () => {
     setFormMode("create");
@@ -188,6 +194,36 @@ export const OwnerCustomersPage = () => {
               ))}
             </TableBody>
           </Table>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-muted-foreground">
+              Trang {page} / {Math.max(totalPages, 1)} - Tong {totalItems} khach hang
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                className="w-24"
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value="10">10 / page</option>
+                <option value="20">20 / page</option>
+                <option value="50">50 / page</option>
+              </Select>
+              <Button variant="outline" disabled={page <= 1 || customersQuery.isFetching} onClick={() => setPage((prev) => prev - 1)}>
+                Prev
+              </Button>
+              <Button
+                variant="outline"
+                disabled={page >= Math.max(totalPages, 1) || customersQuery.isFetching}
+                onClick={() => setPage((prev) => prev + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

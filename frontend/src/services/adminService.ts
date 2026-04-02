@@ -33,6 +33,19 @@ export interface CustomerUpsertPayload {
   gender: NonNullable<User["gender"]>;
 }
 
+export interface CustomerListParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CustomerListResult {
+  items: User[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 let voucherCache: Voucher[] = [];
 
 const mergeVouchers = (source: Voucher[], extra: Voucher[]) => {
@@ -116,6 +129,24 @@ const toApiErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const toCustomerPage = (data: unknown, page: number, pageSize: number): CustomerListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
 export const adminService = {
   async getOwnerOverview(): Promise<OwnerOverview> {
     const [orders, products] = await Promise.all([
@@ -197,12 +228,20 @@ export const adminService = {
     return getDb().importReceipts;
   },
 
-  async listCustomers(): Promise<User[]> {
+  async listCustomers(params: CustomerListParams = {}): Promise<CustomerListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
     try {
-      const { data } = await axiosClient.get("/customers", { params: { page: 0, size: 500 } });
-      return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+      const { data } = await axiosClient.get("/customers", { params: { page: page - 1, size: pageSize } });
+      return toCustomerPage(data, page, pageSize);
     } catch {
-      return [];
+      return {
+        items: [],
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 0,
+      };
     }
   },
 
