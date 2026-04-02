@@ -51,6 +51,11 @@ export interface CustomerLockPayload {
   isActive: boolean;
 }
 
+export interface StaffLockPayload {
+  staffId: string;
+  isActive: boolean;
+}
+
 let voucherCache: Voucher[] = [];
 
 const mergeVouchers = (source: Voucher[], extra: Voucher[]) => {
@@ -311,13 +316,40 @@ export const adminService = {
     }
   },
 
+  async promoteCustomerToStaff(customerId: string): Promise<User> {
+    try {
+      const { data } = await axiosClient.patch(`/customers/${customerId}/promote-to-staff`);
+      return mapBackendUser(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Khong the nang quyen khach hang."));
+    }
+  },
+
   async listStaff(): Promise<User[]> {
     try {
       const { data } = await axiosClient.get("/users/role/STAFF");
       return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
     } catch {
-      await delay(120);
-      return getDb().staff;
+      return [];
+    }
+  },
+
+  async getStaffById(staffId: string): Promise<User | null> {
+    try {
+      const { data } = await axiosClient.get(`/users/${staffId}`);
+      return mapBackendUser(data);
+    } catch {
+      return null;
+    }
+  },
+
+  async setStaffActiveStatus({ staffId, isActive }: StaffLockPayload): Promise<User> {
+    try {
+      const path = isActive ? "unlock" : "lock";
+      const { data } = await axiosClient.patch(`/users/${staffId}/${path}`);
+      return mapBackendUser(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Khong the cap nhat trang thai nhan vien."));
     }
   },
 
@@ -355,11 +387,8 @@ export const adminService = {
   async removeStaff(staffId: string) {
     try {
       await axiosClient.delete(`/users/${staffId}`);
-    } catch {
-      await delay(100);
-      const db = getDb();
-      db.staff = db.staff.filter((item) => item.id !== staffId);
-      db.users = db.users.filter((item) => item.id !== staffId);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Khong the xoa nhan vien."));
     }
   },
 
