@@ -67,6 +67,9 @@ const OwnerWarrantyDetailPage = lazy(() =>
   import("@/features/owner/pages/OwnerWarrantyDetailPage").then((m) => ({ default: m.OwnerWarrantyDetailPage })),
 );
 const OwnerStaffPage = lazy(() => import("@/features/owner/pages/OwnerStaffPage").then((m) => ({ default: m.OwnerStaffPage })));
+const OwnerStaffDetailPage = lazy(() =>
+  import("@/features/owner/pages/OwnerStaffDetailPage").then((m) => ({ default: m.OwnerStaffDetailPage })),
+);
 const OwnerVouchersPage = lazy(() => import("@/features/owner/pages/OwnerVouchersPage").then((m) => ({ default: m.OwnerVouchersPage })));
 const OwnerReportsPage = lazy(() => import("@/features/owner/pages/OwnerReportsPage").then((m) => ({ default: m.OwnerReportsPage })));
 const OwnerContentPage = lazy(() => import("@/features/owner/pages/OwnerContentPage").then((m) => ({ default: m.OwnerContentPage })));
@@ -151,6 +154,7 @@ export const AppRouter = () => (
           <Route path={ROUTES.owner.warranties} element={<OwnerWarrantiesPage />} />
           <Route path={ROUTES.owner.warrantyDetail} element={<OwnerWarrantyDetailPage />} />
           <Route path={ROUTES.owner.staff} element={<OwnerStaffPage />} />
+          <Route path={ROUTES.owner.staffDetail} element={<OwnerStaffDetailPage />} />
           <Route path={ROUTES.owner.vouchers} element={<OwnerVouchersPage />} />
           <Route path={ROUTES.owner.reports} element={<OwnerReportsPage />} />
           <Route path={ROUTES.owner.content} element={<OwnerContentPage />} />

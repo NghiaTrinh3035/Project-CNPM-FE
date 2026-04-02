@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, Lock, LockOpen, Trash2 } from "lucide-react";
+import { Eye, Lock, LockOpen, Trash2, UserRoundCog } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ export const OwnerCustomersPage = () => {
   const [keyword, setKeyword] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [lockTarget, setLockTarget] = useState<User | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<User | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const navigate = useNavigate();
@@ -51,6 +52,20 @@ export const OwnerCustomersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
       queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
       setLockTarget(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const promoteMutation = useMutation({
+    mutationFn: adminService.promoteCustomerToStaff,
+    onSuccess: () => {
+      toast.success("Da nang role khach hang thanh nhan vien.");
+      queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
+      queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
+      queryClient.invalidateQueries({ queryKey: ["owner-staff"] });
+      setPromoteTarget(null);
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -117,6 +132,14 @@ export const OwnerCustomersPage = () => {
                       <Button variant="danger" size="sm" onClick={() => setDeleteTarget(customer)}>
                         <Trash2 className="mr-1 h-4 w-4" />
                         Delete
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 text-white hover:bg-blue-500"
+                        onClick={() => setPromoteTarget(customer)}
+                      >
+                        <UserRoundCog className="mr-1 h-4 w-4" />
+                        Nang role
                       </Button>
                     </div>
                   </TableCell>
@@ -223,6 +246,41 @@ export const OwnerCustomersPage = () => {
               }}
             >
               {deleteMutation.isPending ? "Dang xoa..." : "Xoa"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(promoteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPromoteTarget(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xac nhan nang role</DialogTitle>
+            <DialogDescription>
+              Ban co chac chan muon nang khach hang {promoteTarget?.fullName || "nay"} thanh nhan vien khong?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setPromoteTarget(null)}>
+              Huy
+            </Button>
+            <Button
+              className="bg-blue-600 text-white hover:bg-blue-500"
+              disabled={!promoteTarget || promoteMutation.isPending}
+              onClick={() => {
+                if (!promoteTarget) {
+                  return;
+                }
+                promoteMutation.mutate(promoteTarget.id);
+              }}
+            >
+              {promoteMutation.isPending ? "Dang nang role..." : "Nang role"}
             </Button>
           </div>
         </DialogContent>
