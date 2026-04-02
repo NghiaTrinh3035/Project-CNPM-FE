@@ -1,6 +1,9 @@
 import axios, { AxiosHeaders } from "axios";
 import type { AxiosInstance } from "axios";
 
+import { AUTH_STORAGE_KEYS } from "@/shared/constants/auth";
+import { ROUTES } from "@/shared/constants/routes";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 const axiosClient: AxiosInstance = axios.create({
@@ -11,7 +14,7 @@ const axiosClient: AxiosInstance = axios.create({
 
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
     if (token) {
       const headers = AxiosHeaders.from(config.headers);
       headers.set("Authorization", `Bearer ${token}`);
@@ -28,8 +31,8 @@ axiosClient.interceptors.response.use(
     if (error && error.response) {
       const { status } = error.response;
       if (status === 401) {
-        localStorage.removeItem("accessToken");
-        window.location.href = "/auth/login";
+        localStorage.removeItem(AUTH_STORAGE_KEYS.accessToken);
+        window.location.href = ROUTES.auth.login;
       }
     }
     return Promise.reject(error);
@@ -37,12 +40,12 @@ axiosClient.interceptors.response.use(
 );
 
 export function setAuthToken(token: string | null) {
-  if (token) localStorage.setItem("accessToken", token);
-  else localStorage.removeItem("accessToken");
+  if (token) localStorage.setItem(AUTH_STORAGE_KEYS.accessToken, token);
+  else localStorage.removeItem(AUTH_STORAGE_KEYS.accessToken);
 }
 
 export function getAuthToken(): string | null {
-  return localStorage.getItem("accessToken");
+  return localStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
 }
 
 export default axiosClient;

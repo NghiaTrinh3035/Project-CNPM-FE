@@ -15,6 +15,7 @@ import type { UserRole } from "@/shared/types/domain";
 import { DEMO_ACCOUNTS } from "@/shared/constants/demoAccounts";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuthStore } from "@/shared/hooks/useAuthStore";
+import { resolvePostLoginRedirect } from "@/shared/lib/authRedirect";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
@@ -66,7 +67,10 @@ export const LoginPage = () => {
 
       setSession(session);
       toast.success("Đăng nhập thành công.");
-      const redirect = (location.state as { from?: string } | null)?.from ?? ROUTES.home;
+      const redirect = resolvePostLoginRedirect(
+        session.user.role,
+        (location.state as { from?: string } | null)?.from,
+      );
       navigate(redirect, { replace: true });
     },
     onError: (error: unknown) => toast.error(getErrorMessage(error, "Đăng nhập thất bại")),

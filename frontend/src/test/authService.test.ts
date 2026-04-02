@@ -5,7 +5,7 @@ import { authService } from "@/services/authService";
 describe("authService", () => {
   it("đăng nhập thành công với demo account", async () => {
     const session = await authService.login({
-      email: "customer@example.com",
+      usernameOrEmail: "customer@example.com",
       password: "Demo@123",
     });
     expect(session.user.email).toBe("customer@example.com");
@@ -15,7 +15,7 @@ describe("authService", () => {
   it("trả lỗi khi sai mật khẩu", async () => {
     await expect(
       authService.login({
-        email: "customer@example.com",
+        usernameOrEmail: "customer@example.com",
         password: "wrong-password",
       }),
     ).rejects.toThrow("Email hoặc mật khẩu không chính xác.");

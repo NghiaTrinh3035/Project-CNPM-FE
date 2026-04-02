@@ -2,7 +2,13 @@ import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
 import { mapBackendCategory, mapBackendProduct, unwrapPage } from "@/services/api/backendMappers";
 import { delay } from "@/services/mock/delay";
-import type { Product } from "@/shared/types/domain";
+import type { Product, ProductImage } from "@/shared/types/domain";
+
+export interface ProductImageUploadPayload {
+  file: File;
+  altText?: string;
+  isPrimary?: boolean;
+}
 
 export interface ProductQueryInput {
   keyword?: string;
@@ -99,6 +105,23 @@ const fetchProductsSafe = async (): Promise<Product[]> => {
   }
 };
 
+const mapProductImage = (input: Record<string, unknown>): ProductImage => ({
+  id: String(input.id ?? `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
+  url: String(input.imageUrl ?? input.url ?? ""),
+  alt: String(input.altText ?? input.alt ?? ""),
+  isPrimary: Boolean(input.isThumbnail ?? input.isPrimary),
+});
+
+const ensurePrimaryImage = (images: ProductImage[]) => {
+  if (!images.length) {
+    return images;
+  }
+  if (images.some((image) => image.isPrimary)) {
+    return images;
+  }
+  return images.map((image, index) => ({ ...image, isPrimary: index === 0 }));
+};
+
 export const productService = {
   async getAll(params: ProductQueryInput = {}): Promise<ProductQueryResult> {
     const page = params.page ?? 1;
@@ -167,6 +190,11 @@ export const productService = {
     );
   },
 
+  async getById(id: string): Promise<Product | null> {
+    const products = await fetchProductsSafe();
+    return products.find((product) => product.id === id) ?? null;
+  },
+
   async getByIds(ids: string[]): Promise<Product[]> {
     if (!ids.length) {
       return [];
@@ -202,5 +230,81 @@ export const productService = {
         all.find((item) => item.category.slug === slug)?.category,
       ),
     };
+  },
+
+  async getProductImages(productId: string): Promise<ProductImage[]> {
+    try {
+      const { data } = await axiosClient.get<unknown>(`/products/${productId}/images`);
+      if (!Array.isArray(data)) {
+        return [];
+      }
+      return ensurePrimaryImage(
+        data.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object")).map(mapProductImage),
+      );
+    } catch {
+      await delay(100);
+      const product = getDb().products.find((item) => item.id === productId);
+      if (!product) {
+        throw new Error("Không tìm thấy sản phẩm để tải ảnh.");
+      }
+      return structuredClone(ensurePrimaryImage(product.images ?? []));
+    }
+  },
+
+  async uploadProductImage(productId: string, payload: ProductImageUploadPayload): Promise<ProductImage> {
+    const formData = new FormData();
+    formData.append("file", payload.file);
+    if (payload.altText?.trim()) {
+      formData.append("altText", payload.altText.trim());
+    }
+    formData.append("isThumbnail", String(Boolean(payload.isPrimary)));
+
+    try {
+      const { data } = await axiosClient.post<unknown>(`/products/${productId}/images`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      if (!data || typeof data !== "object") {
+        throw new Error("Upload ảnh thất bại.");
+      }
+      return mapProductImage(data as Record<string, unknown>);
+    } catch {
+      await delay(120);
+      const db = getDb();
+      const product = db.products.find((item) => item.id === productId);
+      if (!product) {
+        throw new Error("Không tìm thấy sản phẩm để upload ảnh.");
+      }
+
+      const image: ProductImage = {
+        id: `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        url: `https://placehold.co/1000x1000?text=${encodeURIComponent(payload.file.name || "product")}`,
+        alt: payload.altText?.trim() || payload.file.name || "product image",
+        isPrimary: Boolean(payload.isPrimary),
+      };
+
+      const currentImages = product.images ?? [];
+      const nextImages = image.isPrimary
+        ? currentImages.map((item) => ({ ...item, isPrimary: false }))
+        : currentImages;
+      product.images = ensurePrimaryImage([image, ...nextImages]);
+      return structuredClone(image);
+    }
+  },
+
+  async deleteProductImage(productId: string, imageId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/products/${productId}/images/${imageId}`);
+    } catch {
+      await delay(100);
+      const db = getDb();
+      const product = db.products.find((item) => item.id === productId);
+      if (!product) {
+        throw new Error("Không tìm thấy sản phẩm để xóa ảnh.");
+      }
+      const remaining = ensurePrimaryImage((product.images ?? []).filter((image) => image.id !== imageId));
+      product.images = remaining;
+    }
   },
 };

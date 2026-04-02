@@ -13,13 +13,14 @@ interface RouteGuardProps {
 export const RouteGuard = ({ children, allowRoles, requireAuth = true }: RouteGuardProps) => {
   const location = useLocation();
   const { isAuthenticated, user } = useSession();
+  const from = `${location.pathname}${location.search}${location.hash}`;
 
   if (!requireAuth) {
     return <>{children}</>;
   }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to={ROUTES.auth.login} replace state={{ from: location.pathname }} />;
+    return <Navigate to={ROUTES.auth.login} replace state={{ from }} />;
   }
 
   if (allowRoles && !allowRoles.includes(user.role)) {

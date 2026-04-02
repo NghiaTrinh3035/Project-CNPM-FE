@@ -36,7 +36,19 @@ const StaffDashboardPage = lazy(() => import("@/features/staff/pages/StaffDashbo
 const StaffOrdersPage = lazy(() => import("@/features/staff/pages/StaffOrdersPage").then((m) => ({ default: m.StaffOrdersPage })));
 const StaffOrderDetailPage = lazy(() => import("@/features/staff/pages/StaffOrderDetailPage").then((m) => ({ default: m.StaffOrderDetailPage })));
 const StaffWarrantiesPage = lazy(() => import("@/features/staff/pages/StaffWarrantiesPage").then((m) => ({ default: m.StaffWarrantiesPage })));
+const StaffWarrantyDetailPage = lazy(() =>
+  import("@/features/staff/pages/StaffWarrantyDetailPage").then((m) => ({ default: m.StaffWarrantyDetailPage })),
+);
 const StaffProductsPage = lazy(() => import("@/features/staff/pages/StaffProductsPage").then((m) => ({ default: m.StaffProductsPage })));
+const StaffProductDetailPage = lazy(() =>
+  import("@/features/staff/pages/StaffProductDetailPage").then((m) => ({ default: m.StaffProductDetailPage })),
+);
+const StaffCustomersPage = lazy(() =>
+  import("@/features/staff/pages/StaffCustomersPage").then((m) => ({ default: m.StaffCustomersPage })),
+);
+const StaffCustomerDetailPage = lazy(() =>
+  import("@/features/staff/pages/StaffCustomerDetailPage").then((m) => ({ default: m.StaffCustomerDetailPage })),
+);
 const StaffSupportPage = lazy(() => import("@/features/staff/pages/StaffSupportPage").then((m) => ({ default: m.StaffSupportPage })));
 
 const OwnerDashboardPage = lazy(() => import("@/features/owner/pages/OwnerDashboardPage").then((m) => ({ default: m.OwnerDashboardPage })));
@@ -45,10 +57,22 @@ const OwnerInventoryPage = lazy(() => import("@/features/owner/pages/OwnerInvent
 const OwnerSuppliersPage = lazy(() => import("@/features/owner/pages/OwnerSuppliersPage").then((m) => ({ default: m.OwnerSuppliersPage })));
 const OwnerImportReceiptsPage = lazy(() => import("@/features/owner/pages/OwnerImportReceiptsPage").then((m) => ({ default: m.OwnerImportReceiptsPage })));
 const OwnerCustomersPage = lazy(() => import("@/features/owner/pages/OwnerCustomersPage").then((m) => ({ default: m.OwnerCustomersPage })));
+const OwnerCustomerDetailPage = lazy(() =>
+  import("@/features/owner/pages/OwnerCustomerDetailPage").then((m) => ({ default: m.OwnerCustomerDetailPage })),
+);
+const OwnerWarrantiesPage = lazy(() =>
+  import("@/features/owner/pages/OwnerWarrantiesPage").then((m) => ({ default: m.OwnerWarrantiesPage })),
+);
+const OwnerWarrantyDetailPage = lazy(() =>
+  import("@/features/owner/pages/OwnerWarrantyDetailPage").then((m) => ({ default: m.OwnerWarrantyDetailPage })),
+);
 const OwnerStaffPage = lazy(() => import("@/features/owner/pages/OwnerStaffPage").then((m) => ({ default: m.OwnerStaffPage })));
 const OwnerVouchersPage = lazy(() => import("@/features/owner/pages/OwnerVouchersPage").then((m) => ({ default: m.OwnerVouchersPage })));
 const OwnerReportsPage = lazy(() => import("@/features/owner/pages/OwnerReportsPage").then((m) => ({ default: m.OwnerReportsPage })));
 const OwnerContentPage = lazy(() => import("@/features/owner/pages/OwnerContentPage").then((m) => ({ default: m.OwnerContentPage })));
+const OwnerProductDetailPage = lazy(() =>
+  import("@/features/owner/pages/OwnerProductDetailPage").then((m) => ({ default: m.OwnerProductDetailPage })),
+);
 
 const NotFoundPage = lazy(() => import("@/features/static/pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
@@ -60,7 +84,7 @@ export const AppRouter = () => (
           <Route index element={<HomePage />} />
           <Route path={ROUTES.shop} element={<CatalogPage />} />
           <Route path={ROUTES.search} element={<SearchPage />} />
-          <Route path="/product/:slug" element={<ProductDetailPage />} />
+          <Route path={ROUTES.productDetail} element={<ProductDetailPage />} />
           <Route path={ROUTES.compare} element={<ComparePage />} />
           <Route path={ROUTES.about} element={<AboutPage />} />
           <Route path={ROUTES.contact} element={<ContactPage />} />
@@ -84,7 +108,7 @@ export const AppRouter = () => (
             <Route path={ROUTES.customer.cart} element={<CartPage />} />
             <Route path={ROUTES.customer.checkout} element={<CheckoutPage />} />
             <Route path={ROUTES.customer.orders} element={<OrdersPage />} />
-            <Route path="/orders/:id" element={<OrderDetailPage />} />
+            <Route path={ROUTES.customer.orderDetail} element={<OrderDetailPage />} />
             <Route path={ROUTES.customer.warranty} element={<WarrantyPage />} />
             <Route path={ROUTES.customer.newWarranty} element={<NewWarrantyPage />} />
           </Route>
@@ -99,9 +123,13 @@ export const AppRouter = () => (
         >
           <Route path={ROUTES.staff.dashboard} element={<StaffDashboardPage />} />
           <Route path={ROUTES.staff.orders} element={<StaffOrdersPage />} />
-          <Route path="/staff/orders/:id" element={<StaffOrderDetailPage />} />
+          <Route path={ROUTES.staff.orderDetail} element={<StaffOrderDetailPage />} />
           <Route path={ROUTES.staff.warranties} element={<StaffWarrantiesPage />} />
+          <Route path={ROUTES.staff.warrantyDetail} element={<StaffWarrantyDetailPage />} />
           <Route path={ROUTES.staff.products} element={<StaffProductsPage />} />
+          <Route path={ROUTES.staff.productDetail} element={<StaffProductDetailPage />} />
+          <Route path={ROUTES.staff.customers} element={<StaffCustomersPage />} />
+          <Route path={ROUTES.staff.customerDetail} element={<StaffCustomerDetailPage />} />
           <Route path={ROUTES.staff.support} element={<StaffSupportPage />} />
         </Route>
 
@@ -114,10 +142,14 @@ export const AppRouter = () => (
         >
           <Route path={ROUTES.owner.dashboard} element={<OwnerDashboardPage />} />
           <Route path={ROUTES.owner.products} element={<OwnerProductsPage />} />
+          <Route path={ROUTES.owner.productDetail} element={<OwnerProductDetailPage />} />
           <Route path={ROUTES.owner.inventory} element={<OwnerInventoryPage />} />
           <Route path={ROUTES.owner.suppliers} element={<OwnerSuppliersPage />} />
           <Route path={ROUTES.owner.importReceipts} element={<OwnerImportReceiptsPage />} />
           <Route path={ROUTES.owner.customers} element={<OwnerCustomersPage />} />
+          <Route path={ROUTES.owner.customerDetail} element={<OwnerCustomerDetailPage />} />
+          <Route path={ROUTES.owner.warranties} element={<OwnerWarrantiesPage />} />
+          <Route path={ROUTES.owner.warrantyDetail} element={<OwnerWarrantyDetailPage />} />
           <Route path={ROUTES.owner.staff} element={<OwnerStaffPage />} />
           <Route path={ROUTES.owner.vouchers} element={<OwnerVouchersPage />} />
           <Route path={ROUTES.owner.reports} element={<OwnerReportsPage />} />
@@ -125,7 +157,7 @@ export const AppRouter = () => (
         </Route>
 
         <Route path={ROUTES.errors.forbidden} element={<ForbiddenPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path={ROUTES.errors.notFound} element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   </BrowserRouter>

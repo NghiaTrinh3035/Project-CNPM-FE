@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
 import {
@@ -20,6 +21,16 @@ export interface OwnerOverview {
   warrantyCount: number;
   recentOrders: Awaited<ReturnType<typeof orderService.getAllOrders>>;
   bestSellerStats: Array<{ name: string; sold: number }>;
+}
+
+export interface CustomerUpsertPayload {
+  username: string;
+  password?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  gender: NonNullable<User["gender"]>;
 }
 
 let voucherCache: Voucher[] = [];
@@ -81,6 +92,30 @@ const toVoucherRequest = (voucher: Voucher) => {
   };
 };
 
+const toApiErrorMessage = (error: unknown, fallback: string) => {
+  if (!axios.isAxiosError(error)) {
+    return fallback;
+  }
+
+  const data = error.response?.data;
+  if (typeof data === "string" && data.trim()) {
+    return data;
+  }
+
+  if (data && typeof data === "object") {
+    const message = (data as Record<string, unknown>)["message"];
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+    const errorText = (data as Record<string, unknown>)["error"];
+    if (typeof errorText === "string" && errorText.trim()) {
+      return errorText;
+    }
+  }
+
+  return fallback;
+};
+
 export const adminService = {
   async getOwnerOverview(): Promise<OwnerOverview> {
     const [orders, products] = await Promise.all([
@@ -113,6 +148,10 @@ export const adminService = {
   async listProducts(): Promise<Product[]> {
     const result = await productService.getAll({ page: 1, pageSize: 500 });
     return result.items;
+  },
+
+  async getProductById(productId: string): Promise<Product | null> {
+    return productService.getById(productId);
   },
 
   async saveProduct(input: Product): Promise<Product> {
@@ -160,11 +199,61 @@ export const adminService = {
 
   async listCustomers(): Promise<User[]> {
     try {
-      const { data } = await axiosClient.get("/users/role/CUSTOMER");
+      const { data } = await axiosClient.get("/customers", { params: { page: 0, size: 500 } });
       return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
     } catch {
-      await delay(120);
-      return getDb().customers;
+      return [];
+    }
+  },
+
+  async getCustomerById(customerId: string): Promise<User | null> {
+    try {
+      const { data } = await axiosClient.get(`/customers/${customerId}`);
+      return mapBackendUser(data);
+    } catch {
+      return null;
+    }
+  },
+
+  async createCustomer(payload: CustomerUpsertPayload): Promise<User> {
+    try {
+      const { data } = await axiosClient.post("/customers", {
+        username: payload.username,
+        password: payload.password ?? "Customer@123",
+        fullName: payload.fullName,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.address,
+        gender: payload.gender,
+      });
+      const mapped = mapBackendUser(data);
+      return { ...mapped, fullName: payload.fullName, role: "CUSTOMER" };
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Khong the tao khach hang."));
+    }
+  },
+
+  async updateCustomer(customerId: string, payload: Omit<CustomerUpsertPayload, "password">): Promise<User> {
+    try {
+      const { data } = await axiosClient.put(`/customers/${customerId}`, {
+        fullName: payload.fullName,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.address,
+        gender: payload.gender,
+      });
+      const mapped = mapBackendUser(data);
+      return { ...mapped, fullName: payload.fullName, role: "CUSTOMER" };
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Khong the cap nhat khach hang."));
+    }
+  },
+
+  async removeCustomer(customerId: string) {
+    try {
+      await axiosClient.delete(`/customers/${customerId}`);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Khong the xoa khach hang."));
     }
   },
 

@@ -1,14 +1,4 @@
-import axios from "axios";
+import axiosClient, { getAuthToken, setAuthToken } from "@/api/axiosClient";
 
-export const httpClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api",
-  timeout: 10_000,
-});
-
-httpClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("chrono_auth_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+export const httpClient = axiosClient;
+export { getAuthToken, setAuthToken };
