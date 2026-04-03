@@ -2,12 +2,28 @@ import axios from "axios";
 import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
 import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
-import { mapBackendProduct, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
+import {
+  mapBackendProduct,
+  mapBackendSupplier,
+  mapBackendUser,
+  mapBackendVoucher,
+  unwrapPage,
+} from "@/services/api/backendMappers";
 import { orderService } from "@/services/orderService";
 import { productService } from "@/services/productService";
 import { delay } from "@/services/mock/delay";
-import { toSlug } from "@/shared/utils/slug";
-import type { Product, ProductStatus, RevenueReport, StaticPageContent, Supplier, User, Voucher } from "@/shared/types/domain";
+import type {
+  Product,
+  ProductStatus,
+  RevenueReport,
+  StaticPageContent,
+  Supplier,
+  User,
+  Voucher,
+  VoucherCreatePayload,
+  VoucherStatus,
+  VoucherUpdatePayload,
+} from "@/shared/types/domain";
 
 export interface OwnerOverview {
   revenue: number;
@@ -91,6 +107,46 @@ export interface SupplierPayload {
   address: string | null;
 }
 
+export interface ImportReceiptItemPayload {
+  productId: string;
+  quantity: number;
+  importPrice: number;
+}
+
+export interface ImportReceiptPayload {
+  supplierId: string;
+  note?: string | null;
+  items: ImportReceiptItemPayload[];
+}
+
+export interface ImportReceiptItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  importPrice: number;
+  lineTotal: number;
+}
+
+export interface ImportReceiptRecord {
+  id: string;
+  importDate: string;
+  note: string | null;
+  supplierId: string;
+  supplierName: string;
+  ownerId: string;
+  items: ImportReceiptItem[];
+  totalAmount: number;
+  totalCost: number;
+}
+
+export interface ImportReceiptListParams {
+  supplierId?: string;
+  fromDate?: string;
+  toDate?: string;
+  keyword?: string;
+}
+
 const calcRevenue = (orders: Awaited<ReturnType<typeof orderService.getAllOrders>>) =>
   orders.reduce((sum, order) => {
     if (["DELIVERED", "COMPLETED"].includes(order.status)) {
@@ -98,6 +154,23 @@ const calcRevenue = (orders: Awaited<ReturnType<typeof orderService.getAllOrders
     }
     return sum;
   }, 0);
+
+const pickString = (value: unknown, fallback = "") => (typeof value === "string" ? value : fallback);
+
+const toNumber = (value: unknown, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const toIso = (value: unknown) => {
+  if (typeof value === "string" || typeof value === "number" || value instanceof Date) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  }
+  return new Date().toISOString();
+};
 
 const buildReports = (orders: Awaited<ReturnType<typeof orderService.getAllOrders>>): RevenueReport[] => {
   const bucket = new Map<string, RevenueReport>();
@@ -256,14 +329,12 @@ async function updateProduct(id: string, payload: ProductUpdateRequest): Promise
   }
 }
 
-const toVoucherRequest = (voucher: Voucher) => {
-  const now = new Date();
-  const validTo = voucher.isActive ? new Date(voucher.validTo) : new Date(now.getTime() - 1000);
+const toVoucherRequest = (voucher: VoucherCreatePayload | VoucherUpdatePayload | Voucher) => {
   return {
     code: voucher.code.trim().toUpperCase(),
     discountPercent: voucher.discountPercent,
     quantity: voucher.quantity,
-    status: voucher.status,
+    status: voucher.status ?? "ACTIVE",
     validFrom: new Date(voucher.validFrom).toISOString(),
     validTo: new Date(voucher.validTo).toISOString(),
   };
@@ -365,6 +436,43 @@ const toSupplierPage = (data: unknown, page: number, pageSize: number): Supplier
   };
 };
 
+const mapImportReceiptItem = (raw: unknown, index: number): ImportReceiptItem => {
+  const payload = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const quantity = Math.max(0, Math.round(toNumber(payload["quantity"], 0)));
+  const importPrice = Math.max(0, Math.round(toNumber(payload["importPrice"], 0)));
+  const fallbackLineTotal = quantity * importPrice;
+
+  return {
+    id: pickString(payload["id"], `iri-${Date.now()}-${index}`),
+    productId: pickString(payload["productId"]),
+    productName: pickString(payload["productName"], "San pham"),
+    quantity,
+    importPrice,
+    lineTotal: Math.max(0, Math.round(toNumber(payload["lineTotal"], fallbackLineTotal))),
+  };
+};
+
+const mapImportReceiptRecord = (raw: unknown, index: number): ImportReceiptRecord => {
+  const payload = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const itemsRaw = Array.isArray(payload["items"]) ? payload["items"] : [];
+  const items = itemsRaw.map((item, itemIndex) => mapImportReceiptItem(item, itemIndex));
+  const fallbackTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const totalAmount = Math.max(0, Math.round(toNumber(payload["totalAmount"], fallbackTotal)));
+  const totalCost = Math.max(0, Math.round(toNumber(payload["totalCost"], totalAmount)));
+
+  return {
+    id: pickString(payload["id"], `ir-${Date.now()}-${index}`),
+    importDate: toIso(payload["importDate"]),
+    note: pickString(payload["note"]).trim() || null,
+    supplierId: pickString(payload["supplierId"]),
+    supplierName: pickString(payload["supplierName"], "--"),
+    ownerId: pickString(payload["ownerId"]),
+    items,
+    totalAmount,
+    totalCost,
+  };
+};
+
 export const adminService = {
   async getOwnerOverview(): Promise<OwnerOverview> {
     const [orders, products] = await Promise.all([
@@ -457,9 +565,44 @@ export const adminService = {
     }
   },
 
-  async listImportReceipts() {
-    await delay(120);
-    return getDb().importReceipts;
+  async listImportReceipts(params: ImportReceiptListParams = {}): Promise<ImportReceiptRecord[]> {
+    try {
+      const supplierId = params.supplierId?.trim() ?? "";
+      const keyword = params.keyword?.trim() ?? "";
+      const fromDate = params.fromDate?.trim() ?? "";
+      const toDate = params.toDate?.trim() ?? "";
+      const { data } = await axiosClient.get("/import-receipts", {
+        params: {
+          ...(supplierId ? { supplierId } : {}),
+          ...(keyword ? { keyword } : {}),
+          ...(fromDate ? { fromDate } : {}),
+          ...(toDate ? { toDate } : {}),
+        },
+      });
+
+      const rows = unwrapPage<Record<string, unknown>>(data);
+      return rows.map((item, index) => mapImportReceiptRecord(item, index));
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tải danh sách phiếu nhập."));
+    }
+  },
+
+  async createImportReceipt(payload: ImportReceiptPayload): Promise<ImportReceiptRecord> {
+    try {
+      const body = {
+        supplierId: payload.supplierId,
+        note: payload.note?.trim() || null,
+        items: payload.items.map((item) => ({
+          productId: item.productId,
+          quantity: Math.max(1, Math.round(item.quantity)),
+          importPrice: Math.max(0, Math.round(item.importPrice)),
+        })),
+      };
+      const { data } = await axiosClient.post("/import-receipts", body);
+      return mapImportReceiptRecord(data, 0);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo phiếu nhập."));
+    }
   },
 
   async listCustomers(params: CustomerListParams = {}): Promise<CustomerListResult> {
