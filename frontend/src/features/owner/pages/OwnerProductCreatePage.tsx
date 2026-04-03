@@ -12,7 +12,6 @@ import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
-import { Select } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 
 type ProductCreateForm = {
@@ -21,7 +20,7 @@ type ProductCreateForm = {
   description: string;
   price: string;
   stockQuantity: string;
-  categoryId: string;
+  categoryIds: string[];
   movementType: string;
   glassMaterial: string;
   faceSize: string;
@@ -41,7 +40,7 @@ const blankCreateForm: ProductCreateForm = {
   description: "",
   price: "",
   stockQuantity: "",
-  categoryId: "",
+  categoryIds: [],
   movementType: "",
   glassMaterial: "",
   faceSize: "",
@@ -61,7 +60,7 @@ const toCreateRequest = (form: ProductCreateForm): ProductCreateRequest => ({
   description: form.description.trim(),
   price: Number(form.price || 0),
   stockQuantity: Number(form.stockQuantity || 0),
-  categoryId: form.categoryId,
+  categoryIds: form.categoryIds,
   movementType: form.movementType.trim(),
   glassMaterial: form.glassMaterial.trim(),
   faceSize: form.faceSize.trim(),
@@ -83,8 +82,7 @@ export const OwnerProductCreatePage = () => {
     queryKey: ["categories"],
     queryFn: async () => {
       const { data } = await axiosClient.get("/categories");
-      const mapped = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendCategory(item as Record<string, unknown>));
-      return mapped;
+      return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendCategory(item as Record<string, unknown>));
     },
   });
 
@@ -122,16 +120,21 @@ export const OwnerProductCreatePage = () => {
             value={form.stockQuantity}
             onChange={(event) => setForm((prev) => ({ ...prev, stockQuantity: event.target.value }))}
           />
-          <Select value={form.categoryId} onChange={(event) => setForm((prev) => ({ ...prev, categoryId: event.target.value }))}>
-            <option value="" disabled>
-              Chọn danh mục
-            </option>
+          <select
+            multiple
+            value={form.categoryIds}
+            className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onChange={(event) => {
+              const selected = Array.from(event.target.selectedOptions).map((item) => item.value);
+              setForm((prev) => ({ ...prev, categoryIds: selected }));
+            }}
+          >
             {(categoriesQuery.data ?? []).map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
             ))}
-          </Select>
+          </select>
           <Input
             placeholder="Loại máy"
             value={form.movementType}
@@ -198,7 +201,14 @@ export const OwnerProductCreatePage = () => {
 
         <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">Danh mục hiện tại</p>
-          <p>{(categoriesQuery.data ?? []).find((category) => category.id === form.categoryId)?.name ?? "Chưa chọn"}</p>
+          <p>
+            {form.categoryIds.length === 0
+              ? "Chưa chọn"
+              : (categoriesQuery.data ?? [])
+                  .filter((category) => form.categoryIds.includes(category.id))
+                  .map((category) => category.name)
+                  .join(", ")}
+          </p>
         </div>
 
         <Button className="w-full" variant="luxury" onClick={() => createMutation.mutate(form)}>

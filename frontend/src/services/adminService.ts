@@ -9,11 +9,12 @@ import type {
 } from "@/features/warranty/types/warrantyAdmin";
 import { getDb } from "@/mocks/data/database";
 import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
-import { mapBackendProduct, mapBackendSupplier, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
+import { mapBackendCategory, mapBackendProduct, mapBackendSupplier, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
 import { orderService } from "@/services/orderService";
 import { productService } from "@/services/productService";
 import { delay } from "@/services/mock/delay";
 import type {
+  Category,
   Product,
   ProductStatus,
   RevenueReport,
@@ -107,6 +108,25 @@ export interface SupplierPayload {
   name: string;
   contractInfo: string | null;
   address: string | null;
+}
+
+export interface CategoryListParams {
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CategoryListResult {
+  items: Category[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface CategoryPayload {
+  name: string;
+  description: string | null;
 }
 
 type BackendWarranty = {
@@ -220,6 +240,14 @@ const getCategoryIdForProduct = async (product: Product): Promise<string> => {
   return String(target["id"]);
 };
 
+const getCategoryIdsForProduct = async (product: Product): Promise<string[]> => {
+  const ids = (product.categories ?? []).map((category) => category.id).filter(Boolean);
+  if (ids.length > 0) {
+    return Array.from(new Set(ids));
+  }
+  return [await getCategoryIdForProduct(product)];
+};
+
 const serializeSpecs = (specs: Product["specs"]): string =>
   (specs ?? [])
     .map((spec) => `${spec.label}: ${spec.value}`)
@@ -248,7 +276,7 @@ export const toProductCreateRequest = async (product: Product): Promise<ProductC
   description: product.description ?? "",
   price: Math.round(product.price),
   stockQuantity: Math.max(0, Math.round(product.stockQuantity)),
-  categoryId: await getCategoryIdForProduct(product),
+  categoryIds: await getCategoryIdsForProduct(product),
   movementType: product.movementType ?? "",
   glassMaterial: product.glassMaterial ?? "",
   faceSize: product.faceSize ?? "",
@@ -273,7 +301,15 @@ const toMockProduct = (
   existing?: Product,
 ): Product => {
   const db = getDb();
-  const category = db.categories.find((item) => item.id === payload.categoryId) ?? db.categories[0];
+  const payloadCategoryIds = payload.categoryIds?.length
+    ? payload.categoryIds
+    : payload.categoryId
+      ? [payload.categoryId]
+      : [];
+  const categories = payloadCategoryIds
+    .map((categoryId) => db.categories.find((item) => item.id === categoryId))
+    .filter((item): item is (typeof db.categories)[number] => Boolean(item));
+  const category = categories[0] ?? db.categories[0];
   const now = new Date().toISOString();
   const status = "status" in payload ? (payload.status as ProductStatus) : existing?.status ?? "ACTIVE";
 
@@ -283,6 +319,7 @@ const toMockProduct = (
     name: payload.name,
     brand: payload.brand,
     category,
+    categories: categories.length > 0 ? categories : [category],
     description: payload.description,
     price: payload.price,
     salePrice: existing?.salePrice,
@@ -498,6 +535,24 @@ const toSupplierPage = (data: unknown, page: number, pageSize: number): Supplier
   };
 };
 
+const toCategoryPage = (data: unknown, page: number, pageSize: number): CategoryListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendCategory(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
 const toWarrantyPage = (data: unknown, page: number, pageSize: number): WarrantyListResult => {
   const content = unwrapPage<BackendWarranty>(data).map((item) => toWarrantyItem(item));
   const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
@@ -649,6 +704,82 @@ export const adminService = {
       await axiosClient.delete(`/suppliers/${supplierId}`);
     } catch (error) {
       throw new Error(toApiErrorMessage(error, "Không thể xóa nhà cung cấp."));
+    }
+  },
+
+  async listCategories(params: CategoryListParams = {}): Promise<CategoryListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    const keyword = params.keyword?.trim() ?? "";
+
+    try {
+      const { data } = await axiosClient.get("/categories/search", {
+        params: {
+          page: page - 1,
+          size: pageSize,
+          ...(keyword ? { keyword } : {}),
+        },
+      });
+      return toCategoryPage(data, page, pageSize);
+    } catch {
+      try {
+        const { data } = await axiosClient.get("/categories");
+        const all = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendCategory(item));
+        const normalizedKeyword = keyword.toLowerCase();
+        const filtered = normalizedKeyword
+          ? all.filter((item) => `${item.name} ${item.description ?? ""}`.toLowerCase().includes(normalizedKeyword))
+          : all;
+        const total = filtered.length;
+        const totalPages = total ? Math.ceil(total / pageSize) : 0;
+        const offset = (page - 1) * pageSize;
+        return {
+          items: filtered.slice(offset, offset + pageSize),
+          page,
+          pageSize,
+          total,
+          totalPages,
+        };
+      } catch {
+        return {
+          items: [],
+          page,
+          pageSize,
+          total: 0,
+          totalPages: 0,
+        };
+      }
+    }
+  },
+
+  async createCategory(payload: CategoryPayload): Promise<Category> {
+    try {
+      const { data } = await axiosClient.post("/categories", {
+        name: payload.name.trim(),
+        description: payload.description?.trim() ? payload.description.trim() : null,
+      });
+      return mapBackendCategory(data as Record<string, unknown>);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo danh mục."));
+    }
+  },
+
+  async updateCategory(categoryId: string, payload: CategoryPayload): Promise<Category> {
+    try {
+      const { data } = await axiosClient.put(`/categories/${categoryId}`, {
+        name: payload.name.trim(),
+        description: payload.description?.trim() ? payload.description.trim() : null,
+      });
+      return mapBackendCategory(data as Record<string, unknown>);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật danh mục."));
+    }
+  },
+
+  async removeCategory(categoryId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/categories/${categoryId}`);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể xóa danh mục."));
     }
   },
 

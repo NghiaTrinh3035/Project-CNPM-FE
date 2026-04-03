@@ -11,7 +11,8 @@ export interface ProductCreateRequest {
   description: string;
   price: number;
   stockQuantity: number;
-  categoryId: string;
+  categoryIds: string[];
+  categoryId?: string;
   movementType: string;
   glassMaterial: string;
   faceSize: string;
@@ -106,10 +107,18 @@ const fetchProductsFromApi = async (): Promise<Product[]> => {
 
   const mappedProducts = unwrapPage<Record<string, unknown>>(productsResponse).map((item) => {
     const product = mapBackendProduct(item);
+    const resolvedCategories = (product.categories ?? []).map((category) => categoryMap.get(category.id) ?? category);
+    if (resolvedCategories.length > 0) {
+      product.categories = resolvedCategories;
+      product.category = resolvedCategories[0];
+      return product;
+    }
+
     const rawCategory = item["category"] as Record<string, unknown> | undefined;
     const rawCategoryId = (rawCategory?.id as string | undefined) ?? (item["categoryId"] as string | undefined);
     if (rawCategoryId && categoryMap.has(rawCategoryId)) {
       product.category = categoryMap.get(rawCategoryId)!;
+      product.categories = [product.category];
     }
     return product;
   });
@@ -173,7 +182,10 @@ export const productService = {
       if (params.brand && product.brand !== params.brand) {
         return false;
       }
-      if (params.category && product.category.slug !== params.category) {
+      if (
+        params.category &&
+        !(product.categories ?? [product.category]).some((category) => category.slug === params.category)
+      ) {
         return false;
       }
       if (movementFilter && !(product.movementType ?? "").toLowerCase().includes(movementFilter)) {
@@ -247,8 +259,12 @@ export const productService = {
       movementTypes: Array.from(new Set(all.map((product) => product.movementType).filter(Boolean))),
       waterResistanceLevels: Array.from(new Set(all.map((product) => product.waterResistance).filter(Boolean))),
       strapMaterials: Array.from(new Set(all.map((product) => product.strapMaterial).filter(Boolean))),
-      categories: Array.from(new Set(all.map((product) => product.category.slug))).map((slug) =>
-        all.find((item) => item.category.slug === slug)?.category,
+      categories: Array.from(
+        new Map(
+          all
+            .flatMap((product) => product.categories ?? [product.category])
+            .map((category) => [category.slug, category]),
+        ).values(),
       ),
     };
   },

@@ -29,6 +29,9 @@ export const StaffProductDetailPage = () => {
   });
 
   const product = query.data;
+  const categoryText = (product?.categories ?? (product?.category ? [product.category] : []))
+	.map((category) => category.name)
+	.join(", ");
 
   return (
 	<Card>
@@ -55,7 +58,7 @@ export const StaffProductDetailPage = () => {
 			  <DetailRow label="Mã sản phẩm" value={product.id} />
 			  <DetailRow label="SKU" value={product.sku ?? "--"} />
 			  <DetailRow label="Thương hiệu" value={product.brand ?? "--"} />
-			  <DetailRow label="Danh mục" value={product.category?.name ?? "--"} />
+			  <DetailRow label="Danh mục" value={categoryText || "--"} />
 			  <DetailRow label="Giá bán" value={toCurrency(product.price)} />
 			  <DetailRow label="Giá khuyến mãi" value={product.salePrice ? toCurrency(product.salePrice) : "--"} />
 			  <DetailRow label="Tồn kho" value={String(product.stockQuantity)} />
