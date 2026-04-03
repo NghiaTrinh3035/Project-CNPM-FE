@@ -19,7 +19,7 @@ const readVoucherMap = (): Record<string, string> => {
   }
 };
 
-let voucherByUser: Record<string, string> = readVoucherMap();
+const voucherByUser: Record<string, string> = readVoucherMap();
 
 const persistVoucherMap = () => {
   try {
@@ -168,27 +168,22 @@ export const cartService = {
   async applyVoucher(userId: string, voucherCode: string): Promise<Cart> {
     const cart = await this.getCart(userId);
     const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    let minOrderAmount = 0;
+    let code = voucherCode.toUpperCase();
     try {
       const { data } = await axiosClient.post(`/vouchers/apply/${encodeURIComponent(voucherCode)}`);
-      const minOrderAmount = Number((data as { minOrderAmount?: number }).minOrderAmount ?? 0);
-      if (subtotal < minOrderAmount) {
-        throw new Error("Đơn hàng chưa đạt mức áp dụng voucher.");
-      }
-      const code = ((data as { voucherCode?: string }).voucherCode ?? voucherCode).toUpperCase();
-      setVoucherForUser(userId, code);
-      return { ...cart, voucherCode: code, updatedAt: new Date().toISOString() };
+      minOrderAmount = Number((data as { minOrderAmount?: number }).minOrderAmount ?? 0);
+      code = ((data as { voucherCode?: string }).voucherCode ?? voucherCode).toUpperCase();
     } catch (error) {
-      const db = getDb();
-      const voucher = db.vouchers.find((item) => item.code.toLowerCase() === voucherCode.toLowerCase());
-      if (!voucher || !voucher.isActive) {
-        throw error instanceof Error ? error : new Error("Mã giảm giá không hợp lệ.");
-      }
-      if (subtotal < voucher.minOrderValue) {
-        throw new Error("Đơn hàng chưa đạt mức áp dụng voucher.");
-      }
-      setVoucherForUser(userId, voucher.code);
-      return { ...cart, voucherCode: voucher.code, updatedAt: new Date().toISOString() };
+      throw error instanceof Error ? error : new Error("Không thể áp dụng voucher. Vui lòng thử lại.");
     }
+
+    if (subtotal < minOrderAmount) {
+      throw new Error("Đơn hàng chưa đạt mức áp dụng voucher.");
+    }
+
+    setVoucherForUser(userId, code);
+    return { ...cart, voucherCode: code, updatedAt: new Date().toISOString() };
   },
 
   async clearCart(userId: string) {

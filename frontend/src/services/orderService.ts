@@ -1,7 +1,6 @@
 import axiosClient from "@/api/axiosClient";
 import { cartService } from "@/services/cartService";
 import { mapBackendOrder, unwrapPage } from "@/services/api/backendMappers";
-import { productService } from "@/services/productService";
 import type { Order, OrderStatus, PaymentMethod, ShippingAddress } from "@/shared/types/domain";
 
 export interface PlaceOrderInput {
@@ -11,21 +10,6 @@ export interface PlaceOrderInput {
   note?: string;
 }
 
-const canTransition = (from: OrderStatus, to: OrderStatus) => {
-  if (from === "CANCELLED" || from === "RETURNED") {
-    return false;
-  }
-  const map: Record<OrderStatus, OrderStatus[]> = {
-    PENDING: ["CONFIRMED", "CANCELLED"],
-    CONFIRMED: ["SHIPPING", "CANCELLED"],
-    SHIPPING: ["DELIVERED"],
-    DELIVERED: ["COMPLETED", "RETURNED"],
-    COMPLETED: [],
-    CANCELLED: [],
-    RETURNED: [],
-  };
-  return map[from].includes(to);
-};
 
 export const orderService = {
   async placeOrder(input: PlaceOrderInput): Promise<Order> {

@@ -41,6 +41,10 @@ export const OwnerStaffDetailPage = () => {
         <CardTitle>Chi tiết nhân viên</CardTitle>
       </CardHeader>
       <CardContent>
+        {staffQuery.isError ? (
+          <p className="text-sm text-red-500">{(staffQuery.error as Error).message}</p>
+        ) : null}
+
         {!staffQuery.isLoading && !staff ? (
           <p className="text-sm text-muted-foreground">
             Không tìm thấy nhân viên. {" "}
