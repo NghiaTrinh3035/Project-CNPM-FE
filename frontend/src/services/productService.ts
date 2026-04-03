@@ -5,6 +5,26 @@ import { mapBackendCategory, mapBackendProduct, unwrapPage } from "@/services/ap
 import { delay } from "@/services/mock/delay";
 import type { Product, ProductImage } from "@/shared/types/domain";
 
+export interface ProductCreateRequest {
+  brand: string;
+  name: string;
+  description: string;
+  price: number;
+  stockQuantity: number;
+  categoryId: string;
+  movementType: string;
+  glassMaterial: string;
+  faceSize: string;
+  wireMaterial: string;
+  waterResistance: string;
+  faceColor: string;
+  wireColor: string;
+  caseColor: string;
+  color: string;
+  size: string;
+  specs: string;
+}
+
 export interface ProductImageUploadPayload {
   file: File;
   altText?: string;
@@ -232,6 +252,16 @@ export const productService = {
       ),
     };
   },
+  
+  async createProduct(payload: ProductCreateRequest): Promise<Product> {
+    try {
+      const data = await productApi.createProduct(payload);
+      return mapBackendProduct(data as unknown as Record<string, unknown>);
+    } catch {
+      throw new Error("Tạo sản phẩm thất bại.");
+    }
+  },
+
 
   async getProductImages(productId: string): Promise<ProductImage[]> {
     try {

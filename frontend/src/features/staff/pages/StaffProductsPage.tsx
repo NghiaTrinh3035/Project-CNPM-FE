@@ -5,9 +5,9 @@ import { toast } from "sonner";
 
 import { PRODUCT_STATUS_LABEL } from "@/shared/constants/labels";
 import { ROUTES } from "@/shared/constants/routes";
-import { adminService } from "@/services/adminService";
+import { adminService, toProductUpdateRequest } from "@/services/adminService";
 import { toCurrency } from "@/shared/lib/format";
-import type { ProductStatus } from "@/shared/types/domain";
+import type { Product, ProductStatus } from "@/shared/types/domain";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -25,7 +25,7 @@ export const StaffProductsPage = () => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: adminService.saveProduct,
+    mutationFn: async (product: Product) => adminService.updateProduct(product.id, await toProductUpdateRequest(product)),
     onSuccess: () => {
       toast.success("Cập nhật sản phẩm thành công.");
       queryClient.invalidateQueries({ queryKey: ["staff-products"] });

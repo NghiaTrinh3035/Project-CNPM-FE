@@ -42,6 +42,7 @@ export const ROUTES = {
   owner: {
     dashboard: "/owner",
     products: "/owner/products",
+    productCreate: "/owner/products/new",
     productDetail: "/owner/products/:id",
     inventory: "/owner/inventory",
     suppliers: "/owner/suppliers",
