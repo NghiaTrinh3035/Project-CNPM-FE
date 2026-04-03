@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardCheck, Headset, Package, ShieldCheck, Truck } from "lucide-react";
 
+import { chatSupportService } from "@/services/chatSupportService";
 import { orderService } from "@/services/orderService";
-import { supportService } from "@/services/supportService";
 import { warrantyService } from "@/services/warrantyService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
@@ -17,14 +17,14 @@ export const StaffDashboardPage = () => {
   });
   const ticketsQuery = useQuery({
     queryKey: ["staff-support-overview"],
-    queryFn: supportService.listTickets,
+    queryFn: chatSupportService.listPending,
   });
 
   const totalOrders = ordersQuery.data?.length ?? 0;
   const pendingOrders = ordersQuery.data?.filter((item) => item.status === "PENDING").length ?? 0;
   const processingOrders = ordersQuery.data?.filter((item) => item.status === "CONFIRMED").length ?? 0;
   const openWarranties = warrantyQuery.data?.filter((item) => item.status !== "COMPLETED").length ?? 0;
-  const openTickets = ticketsQuery.data?.filter((item) => item.status !== "RESOLVED").length ?? 0;
+  const openTickets = ticketsQuery.data?.length ?? 0;
 
   return (
     <section className="space-y-5">

@@ -22,10 +22,7 @@ export class BackendAiAdapter implements AiAssistantAdapter {
   }
 
   async escalateToStaff(): Promise<AiChatMessage> {
-    return makeAssistantMessage(
-      "Mình đã chuyển cuộc trò chuyện cho nhân viên tư vấn. Bạn vui lòng để lại số điện thoại hoặc tiếp tục chat để được hỗ trợ nhanh nhất.",
-      { handledBy: "STAFF" },
-    );
+    const response = await chatApi.escalate();
+    return makeAssistantMessage(response.message, { handledBy: "STAFF" });
   }
 }
-
