@@ -35,6 +35,19 @@ export interface CustomerListResult {
   totalPages: number;
 }
 
+export interface StaffListParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StaffListResult {
+  items: User[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface CustomerLockPayload {
   customerId: string;
   isActive: boolean;
@@ -129,6 +142,24 @@ const toApiErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const toCustomerPage = (data: unknown, page: number, pageSize: number): CustomerListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
+const toStaffPage = (data: unknown, page: number, pageSize: number): StaffListResult => {
   const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
   const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
 
@@ -280,18 +311,26 @@ export const adminService = {
     }
   },
 
-  async listStaff(): Promise<User[]> {
+  async listStaff(params: StaffListParams = {}): Promise<StaffListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
     try {
-      const { data } = await axiosClient.get("/users/role/STAFF");
-      return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+      const { data } = await axiosClient.get("/staff", { params: { page: page - 1, size: pageSize } });
+      return toStaffPage(data, page, pageSize);
     } catch {
-      return [];
+      return {
+        items: [],
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 0,
+      };
     }
   },
 
   async getStaffById(staffId: string): Promise<User | null> {
     try {
-      const { data } = await axiosClient.get(`/users/${staffId}`);
+      const { data } = await axiosClient.get(`/staff/${staffId}`);
       return mapBackendUser(data);
     } catch {
       return null;

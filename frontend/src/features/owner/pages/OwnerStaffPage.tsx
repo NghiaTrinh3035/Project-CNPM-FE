@@ -11,6 +11,7 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
+import { Select } from "@/shared/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
 const toGenderLabel = (gender?: User["gender"]) => {
@@ -20,18 +21,17 @@ const toGenderLabel = (gender?: User["gender"]) => {
 };
 
 export const OwnerStaffPage = () => {
-  const staffApi = adminService as typeof adminService & {
-    setStaffActiveStatus: (payload: { staffId: string; isActive: boolean }) => Promise<User>;
-  };
   const queryClient = useQueryClient();
   const [keyword, setKeyword] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [lockTarget, setLockTarget] = useState<User | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const navigate = useNavigate();
 
   const staffQuery = useQuery({
-    queryKey: ["owner-staff"],
-    queryFn: adminService.listStaff,
+    queryKey: ["owner-staff", page, pageSize],
+    queryFn: () => adminService.listStaff({ page, pageSize }),
   });
 
   const deleteMutation = useMutation({
@@ -47,7 +47,7 @@ export const OwnerStaffPage = () => {
   });
 
   const lockMutation = useMutation({
-    mutationFn: staffApi.setStaffActiveStatus,
+    mutationFn: adminService.setStaffActiveStatus,
     onSuccess: (_, variables) => {
       toast.success(variables.isActive ? "Đã mở khóa nhân viên." : "Đã khóa nhân viên.");
       queryClient.invalidateQueries({ queryKey: ["owner-staff"] });
@@ -59,7 +59,7 @@ export const OwnerStaffPage = () => {
   });
 
   const rows = useMemo(() => {
-    const staff = staffQuery.data ?? [];
+    const staff = staffQuery.data?.items ?? [];
     const normalizedKeyword = keyword.trim().toLowerCase();
 
     return staff.filter((member) => {
@@ -70,6 +70,9 @@ export const OwnerStaffPage = () => {
       return searchTarget.includes(normalizedKeyword);
     });
   }, [keyword, staffQuery.data]);
+
+  const totalPages = staffQuery.data?.totalPages ?? 0;
+  const totalItems = staffQuery.data?.total ?? 0;
 
   return (
     <>
@@ -128,6 +131,36 @@ export const OwnerStaffPage = () => {
               ))}
             </TableBody>
           </Table>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-muted-foreground">
+              Trang {page} / {Math.max(totalPages, 1)} - Tổng {totalItems} nhân viên
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                className="w-24"
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value="10">10 / trang</option>
+                <option value="20">20 / trang</option>
+                <option value="50">50 / trang</option>
+              </Select>
+              <Button variant="outline" disabled={page <= 1 || staffQuery.isFetching} onClick={() => setPage((prev) => prev - 1)}>
+                Trước
+              </Button>
+              <Button
+                variant="outline"
+                disabled={page >= Math.max(totalPages, 1) || staffQuery.isFetching}
+                onClick={() => setPage((prev) => prev + 1)}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
