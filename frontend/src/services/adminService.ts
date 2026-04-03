@@ -1,13 +1,29 @@
 import axios from "axios";
 import axiosClient from "@/api/axiosClient";
+import type {
+  WarrantyAdminItem,
+  WarrantyCreatePayload,
+  WarrantyListParams,
+  WarrantyListResult,
+  WarrantyStatusUpdatePayload,
+} from "@/features/warranty/types/warrantyAdmin";
 import { getDb } from "@/mocks/data/database";
 import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
-import { mapBackendProduct, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
+import { mapBackendProduct, mapBackendSupplier, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
 import { orderService } from "@/services/orderService";
 import { productService } from "@/services/productService";
 import { delay } from "@/services/mock/delay";
-import { toSlug } from "@/shared/utils/slug";
-import type { Product, ProductStatus, RevenueReport, StaticPageContent, Supplier, User, Voucher } from "@/shared/types/domain";
+import type {
+  Product,
+  ProductStatus,
+  RevenueReport,
+  StaticPageContent,
+  Supplier,
+  User,
+  Voucher,
+  VoucherStatus,
+  WarrantyStatus,
+} from "@/shared/types/domain";
 
 export interface OwnerOverview {
   revenue: number;
@@ -90,6 +106,23 @@ export interface SupplierPayload {
   contractInfo: string | null;
   address: string | null;
 }
+
+type BackendWarranty = {
+  id?: string;
+  customerPhone?: string;
+  customerName?: string;
+  issueDescription?: string;
+  receivedDate?: string | number | Date;
+  expectedReturnDate?: string | number | Date;
+  status?: string;
+  technicianNote?: string | null;
+  rejectReason?: string | null;
+  quantity?: number;
+  productId?: string;
+  productName?: string | null;
+};
+
+const WARRANTY_STATUS_SET = new Set<WarrantyStatus>(["RECEIVED", "PROCESSING", "COMPLETED", "REJECTED"]);
 
 const calcRevenue = (orders: Awaited<ReturnType<typeof orderService.getAllOrders>>) =>
   orders.reduce((sum, order) => {
@@ -256,9 +289,16 @@ async function updateProduct(id: string, payload: ProductUpdateRequest): Promise
   }
 }
 
-const toVoucherRequest = (voucher: Voucher) => {
-  const now = new Date();
-  const validTo = voucher.isActive ? new Date(voucher.validTo) : new Date(now.getTime() - 1000);
+type VoucherUpsertPayload = {
+  code: string;
+  discountPercent: number;
+  validFrom: string;
+  validTo: string;
+  quantity: number;
+  status?: VoucherStatus;
+};
+
+const toVoucherRequest = (voucher: VoucherUpsertPayload) => {
   return {
     code: voucher.code.trim().toUpperCase(),
     discountPercent: voucher.discountPercent,
@@ -291,6 +331,41 @@ const toApiErrorMessage = (error: unknown, fallback: string) => {
   }
 
   return fallback;
+};
+
+const toNullableText = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const toWarrantyStatus = (status: unknown): WarrantyStatus => {
+  const value = String(status ?? "").toUpperCase() as WarrantyStatus;
+  return WARRANTY_STATUS_SET.has(value) ? value : "RECEIVED";
+};
+
+const toWarrantyItem = (raw: BackendWarranty): WarrantyAdminItem => {
+  const toIso = (value: unknown) => {
+    const parsed = new Date(value as string);
+    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  };
+
+  return {
+    id: String(raw.id ?? ""),
+    customerPhone: String(raw.customerPhone ?? ""),
+    customerName: String(raw.customerName ?? ""),
+    issueDescription: String(raw.issueDescription ?? ""),
+    receivedDate: toIso(raw.receivedDate),
+    expectedReturnDate: toIso(raw.expectedReturnDate),
+    status: toWarrantyStatus(raw.status),
+    technicianNote: toNullableText(raw.technicianNote),
+    rejectReason: toNullableText(raw.rejectReason),
+    quantity: Math.max(1, Number(raw.quantity ?? 1)),
+    productId: String(raw.productId ?? ""),
+    productName: toNullableText(raw.productName),
+  };
 };
 
 const toCustomerPage = (data: unknown, page: number, pageSize: number): CustomerListResult => {
@@ -365,11 +440,36 @@ const toSupplierPage = (data: unknown, page: number, pageSize: number): Supplier
   };
 };
 
+const toWarrantyPage = (data: unknown, page: number, pageSize: number): WarrantyListResult => {
+  const content = unwrapPage<BackendWarranty>(data).map((item) => toWarrantyItem(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
 export const adminService = {
   async getOwnerOverview(): Promise<OwnerOverview> {
-    const [orders, products] = await Promise.all([
+    const [orders, products, warrantySummary] = await Promise.all([
       orderService.getAllOrders().catch(() => []),
       this.listProducts().catch(() => []),
+      this.listWarranties({ page: 1, pageSize: 1 }).catch(() => ({
+        items: [],
+        page: 1,
+        pageSize: 1,
+        total: 0,
+        totalPages: 0,
+      })),
     ]);
     const soldCounter = new Map<string, number>();
     orders.forEach((order) => {
@@ -388,7 +488,7 @@ export const adminService = {
       totalOrders: orders.length,
       pendingOrders: orders.filter((order) => order.status === "PENDING").length,
       lowStockProducts: products.filter((product) => product.stockQuantity <= 5),
-      warrantyCount: getDb().warranties.length,
+      warrantyCount: warrantySummary.total,
       recentOrders: orders.slice(0, 5),
       bestSellerStats,
     };
@@ -454,6 +554,64 @@ export const adminService = {
       await axiosClient.delete(`/suppliers/${supplierId}`);
     } catch (error) {
       throw new Error(toApiErrorMessage(error, "Không thể xóa nhà cung cấp."));
+    }
+  },
+
+  async listWarranties(params: WarrantyListParams = {}): Promise<WarrantyListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    const keyword = params.keyword?.trim() ?? "";
+
+    try {
+      const useSearchEndpoint = Boolean(keyword) || Boolean(params.status);
+      const endpoint = useSearchEndpoint ? "/warranties/search" : "/warranties";
+      const { data } = await axiosClient.get(endpoint, {
+        params: {
+          page: page - 1,
+          size: pageSize,
+          ...(keyword ? { keyword } : {}),
+          ...(params.status ? { status: params.status } : {}),
+        },
+      });
+      return toWarrantyPage(data, page, pageSize);
+    } catch {
+      return {
+        items: [],
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 0,
+      };
+    }
+  },
+
+  async getWarrantyById(warrantyId: string): Promise<WarrantyAdminItem | null> {
+    try {
+      const { data } = await axiosClient.get<BackendWarranty>(`/warranties/${warrantyId}`);
+      return toWarrantyItem(data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw new Error(toApiErrorMessage(error, "Không thể tải chi tiết bảo hành."));
+    }
+  },
+
+  async createWarranty(payload: WarrantyCreatePayload): Promise<WarrantyAdminItem> {
+    try {
+      const { data } = await axiosClient.post<BackendWarranty>("/warranties/create", payload);
+      return toWarrantyItem(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo phiếu bảo hành."));
+    }
+  },
+
+  async updateWarrantyStatus(warrantyId: string, payload: WarrantyStatusUpdatePayload): Promise<WarrantyAdminItem> {
+    try {
+      const { data } = await axiosClient.patch<BackendWarranty>(`/warranties/${warrantyId}/status`, payload);
+      return toWarrantyItem(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật trạng thái bảo hành."));
     }
   },
 
@@ -580,7 +738,7 @@ export const adminService = {
     }
   },
 
-  async createVoucher(voucher: VoucherCreatePayload): Promise<Voucher> {
+  async createVoucher(voucher: VoucherUpsertPayload): Promise<Voucher> {
     try {
       const payload = toVoucherRequest(voucher);
       const { data } = await axiosClient.post("/vouchers", payload);
@@ -590,7 +748,7 @@ export const adminService = {
     }
   },
 
-  async updateVoucher(voucherId: string, voucher: VoucherUpdatePayload): Promise<Voucher> {
+  async updateVoucher(voucherId: string, voucher: VoucherUpsertPayload): Promise<Voucher> {
     try {
       const payload = toVoucherRequest(voucher);
       const { data } = await axiosClient.put(`/vouchers/${voucherId}`, payload);

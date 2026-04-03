@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardCheck, Headset, Package, ShieldCheck, Truck } from "lucide-react";
 
+import { adminService } from "@/services/adminService";
 import { orderService } from "@/services/orderService";
 import { supportService } from "@/services/supportService";
-import { warrantyService } from "@/services/warrantyService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
 export const StaffDashboardPage = () => {
@@ -11,9 +11,13 @@ export const StaffDashboardPage = () => {
     queryKey: ["staff-orders-overview"],
     queryFn: orderService.getAllOrders,
   });
-  const warrantyQuery = useQuery({
-    queryKey: ["staff-warranties-overview"],
-    queryFn: warrantyService.listAll,
+  const receivedWarrantyQuery = useQuery({
+    queryKey: ["staff-warranties-overview", "RECEIVED"],
+    queryFn: () => adminService.listWarranties({ status: "RECEIVED", page: 1, pageSize: 1 }),
+  });
+  const processingWarrantyQuery = useQuery({
+    queryKey: ["staff-warranties-overview", "PROCESSING"],
+    queryFn: () => adminService.listWarranties({ status: "PROCESSING", page: 1, pageSize: 1 }),
   });
   const ticketsQuery = useQuery({
     queryKey: ["staff-support-overview"],
@@ -23,7 +27,7 @@ export const StaffDashboardPage = () => {
   const totalOrders = ordersQuery.data?.length ?? 0;
   const pendingOrders = ordersQuery.data?.filter((item) => item.status === "PENDING").length ?? 0;
   const processingOrders = ordersQuery.data?.filter((item) => item.status === "CONFIRMED").length ?? 0;
-  const openWarranties = warrantyQuery.data?.filter((item) => item.status !== "COMPLETED").length ?? 0;
+  const openWarranties = (receivedWarrantyQuery.data?.total ?? 0) + (processingWarrantyQuery.data?.total ?? 0);
   const openTickets = ticketsQuery.data?.filter((item) => item.status !== "RESOLVED").length ?? 0;
 
   return (
