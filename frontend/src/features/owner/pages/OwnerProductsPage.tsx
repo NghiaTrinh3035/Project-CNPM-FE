@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { adminService } from "@/services/adminService";
+import { adminService, toProductUpdateRequest } from "@/services/adminService";
 import { categories } from "@/mocks/data/categories";
 import { ROUTES } from "@/shared/constants/routes";
 import type { Product, ProductStatus } from "@/shared/types/domain";
-import { toSlug } from "@/shared/utils/slug";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -18,7 +17,6 @@ import { Textarea } from "@/shared/ui/textarea";
 
 const blankProduct: Product = {
   id: "",
-  slug: "",
   sku: "",
   name: "",
   brand: "",
@@ -61,7 +59,7 @@ export const OwnerProductsPage = () => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: adminService.saveProduct,
+    mutationFn: async (product: Product) => adminService.updateProduct(product.id, await toProductUpdateRequest(product)),
     onSuccess: () => {
       toast.success("Lưu sản phẩm thành công.");
       queryClient.invalidateQueries({ queryKey: ["owner-products"] });
@@ -70,28 +68,12 @@ export const OwnerProductsPage = () => {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const createNew = () => {
-    setEditing({
-      ...blankProduct,
-      id: `p-${Date.now()}`,
-      sku: `SKU-${Date.now().toString().slice(-6)}`,
-      images: [
-        {
-          id: `img-${Date.now()}`,
-          url: "https://images.unsplash.com/photo-1547996160-81dfa63595aa?auto=format&fit=crop&w=1200&q=80",
-          alt: "New product image",
-          isPrimary: true,
-        },
-      ],
-    });
-  };
-
   return (
     <div className="grid gap-4 xl:grid-cols-[1.1fr_420px]">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Danh sách sản phẩm</CardTitle>
-          <Button onClick={createNew}>
+          <Button onClick={() => navigate(ROUTES.owner.productCreate)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Tạo mới
           </Button>
@@ -144,7 +126,7 @@ export const OwnerProductsPage = () => {
           <Input
             placeholder="Tên sản phẩm"
             value={editing.name}
-            onChange={(event) => setEditing((prev) => ({ ...prev, name: event.target.value, slug: toSlug(event.target.value) }))}
+            onChange={(event) => setEditing((prev) => ({ ...prev, name: event.target.value }))}
           />
           <Input
             placeholder="Thương hiệu"
@@ -187,17 +169,7 @@ export const OwnerProductsPage = () => {
           <Button
             variant="luxury"
             className="w-full"
-            onClick={() =>
-              saveMutation.mutate({
-                ...editing,
-                specs: [
-                  { label: "Loại máy", value: editing.movementType ?? "" },
-                  { label: "Mặt kính", value: editing.glassMaterial ?? "" },
-                  { label: "Chống nước", value: editing.waterResistance ?? "" },
-                ],
-                tags: (editing.tags && editing.tags.length ? editing.tags : [editing.brand ?? ""]).filter(Boolean) as string[],
-              })
-            }
+            onClick={() => saveMutation.mutate(editing)}
           >
             Lưu sản phẩm
           </Button>

@@ -25,7 +25,6 @@ const createProduct = (
 export const products: Product[] = [
   createProduct({
     id: "p-001",
-    slug: "rolex-datejust-41-fluted",
     sku: "RLX-DJ41-001",
     name: "Rolex Datejust 41 Fluted",
     brand: "Rolex",
@@ -67,7 +66,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-002",
-    slug: "omega-seamaster-diver-300m",
     sku: "OMG-SM300-002",
     name: "Omega Seamaster Diver 300M",
     brand: "Omega",
@@ -108,7 +106,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-003",
-    slug: "longines-master-collection-moonphase",
     sku: "LNG-MSTR-003",
     name: "Longines Master Collection Moonphase",
     brand: "Longines",
@@ -145,7 +142,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-004",
-    slug: "tissot-prx-powermatic-80",
     sku: "TST-PRX80-004",
     name: "Tissot PRX Powermatic 80",
     brand: "Tissot",
@@ -181,7 +177,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-005",
-    slug: "seiko-prospex-turtle-save-the-ocean",
     sku: "SKX-PRO-005",
     name: "Seiko Prospex Turtle Save The Ocean",
     brand: "Seiko",
@@ -217,7 +212,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-006",
-    slug: "cartier-tank-must-large",
     sku: "CRT-TANK-006",
     name: "Cartier Tank Must Large",
     brand: "Cartier",
@@ -253,7 +247,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-007",
-    slug: "rado-captain-cook-high-tech",
     sku: "RDD-COOK-007",
     name: "Rado Captain Cook High-Tech Ceramic",
     brand: "Rado",
@@ -289,7 +282,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-008",
-    slug: "citizen-tsuyosa-nj015",
     sku: "CTZ-TSY-008",
     name: "Citizen Tsuyosa NJ015",
     brand: "Citizen",
@@ -325,7 +317,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-009",
-    slug: "frederique-constant-classics-heart-beat",
     sku: "FRC-HB-009",
     name: "Frederique Constant Classics Heart Beat",
     brand: "Frederique Constant",
@@ -361,7 +352,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-010",
-    slug: "hamilton-khaki-field-auto-42",
     sku: "HML-KFA-010",
     name: "Hamilton Khaki Field Auto 42",
     brand: "Hamilton",
@@ -397,7 +387,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-011",
-    slug: "orient-star-classic-open-heart",
     sku: "ORT-STAR-011",
     name: "Orient Star Classic Open Heart",
     brand: "Orient Star",
@@ -433,7 +422,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-012",
-    slug: "tag-heuer-aquaracer-professional-200",
     sku: "TAG-AQ200-012",
     name: "TAG Heuer Aquaracer Professional 200",
     brand: "TAG Heuer",
@@ -469,7 +457,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-013",
-    slug: "mido-ocean-star-200c",
     sku: "MDO-OSC-013",
     name: "Mido Ocean Star 200C",
     brand: "Mido",
@@ -505,7 +492,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-014",
-    slug: "maurice-lacroix-aikon-automatic-39",
     sku: "MLX-AIK-014",
     name: "Maurice Lacroix Aikon Automatic 39",
     brand: "Maurice Lacroix",
@@ -541,7 +527,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-015",
-    slug: "sinn-556-i-rs",
     sku: "SNN-556-015",
     name: "Sinn 556 I RS",
     brand: "Sinn",
@@ -577,7 +562,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-016",
-    slug: "casio-gshock-gm-b2100",
     sku: "CSO-GM2100-016",
     name: "Casio G-Shock GM-B2100",
     brand: "Casio",
@@ -613,7 +597,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-017",
-    slug: "omega-speedmaster-moonwatch",
     sku: "OMG-MOON-017",
     name: "Omega Speedmaster Moonwatch Professional",
     brand: "Omega",
@@ -649,7 +632,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-018",
-    slug: "bulova-lunar-pilot-96b251",
     sku: "BLV-LNP-018",
     name: "Bulova Lunar Pilot 96B251",
     brand: "Bulova",
@@ -685,7 +667,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-019",
-    slug: "hublot-classic-fusion-titanium",
     sku: "HBT-CF-019",
     name: "Hublot Classic Fusion Titanium",
     brand: "Hublot",
@@ -721,7 +702,6 @@ export const products: Product[] = [
   }),
   createProduct({
     id: "p-020",
-    slug: "apple-watch-ultra-hermes-edition",
     sku: "APL-HRM-020",
     name: "Apple Watch Ultra Hermes Edition",
     brand: "Apple",

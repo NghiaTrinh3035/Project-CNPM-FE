@@ -1,27 +1,13 @@
 import axios from "axios";
 import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
-import {
-  mapBackendProduct,
-  mapBackendSupplier,
-  mapBackendUser,
-  mapBackendVoucher,
-  unwrapPage,
-} from "@/services/api/backendMappers";
+import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
+import { mapBackendProduct, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
 import { orderService } from "@/services/orderService";
 import { productService } from "@/services/productService";
 import { delay } from "@/services/mock/delay";
-import type {
-  Product,
-  RevenueReport,
-  StaticPageContent,
-  Supplier,
-  User,
-  Voucher,
-  VoucherCreatePayload,
-  VoucherStatus,
-  VoucherUpdatePayload,
-} from "@/shared/types/domain";
+import { toSlug } from "@/shared/utils/slug";
+import type { Product, ProductStatus, RevenueReport, StaticPageContent, Supplier, User, Voucher } from "@/shared/types/domain";
 
 export interface OwnerOverview {
   revenue: number;
@@ -143,7 +129,136 @@ const getCategoryIdForProduct = async (product: Product): Promise<string> => {
   return String(target["id"]);
 };
 
-const toVoucherRequest = (voucher: VoucherCreatePayload | VoucherUpdatePayload) => {
+const serializeSpecs = (specs: Product["specs"]): string =>
+  (specs ?? [])
+    .map((spec) => `${spec.label}: ${spec.value}`)
+    .filter(Boolean)
+    .join("\n");
+
+const parseSpecs = (specs: string): Product["specs"] =>
+  specs
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const separatorIndex = line.indexOf(":");
+      if (separatorIndex < 0) {
+        return { label: "Thông số", value: line };
+      }
+      return {
+        label: line.slice(0, separatorIndex).trim() || "Thông số",
+        value: line.slice(separatorIndex + 1).trim(),
+      };
+    });
+
+export const toProductCreateRequest = async (product: Product): Promise<ProductCreateRequest> => ({
+  brand: product.brand ?? "",
+  name: product.name,
+  description: product.description ?? "",
+  price: Math.round(product.price),
+  stockQuantity: Math.max(0, Math.round(product.stockQuantity)),
+  categoryId: await getCategoryIdForProduct(product),
+  movementType: product.movementType ?? "",
+  glassMaterial: product.glassMaterial ?? "",
+  faceSize: product.faceSize ?? "",
+  wireMaterial: product.wireMaterial ?? product.strapMaterial ?? "",
+  waterResistance: product.waterResistance ?? "",
+  faceColor: product.faceColor ?? "",
+  wireColor: product.wireColor ?? product.strapColor ?? "",
+  caseColor: product.caseColor ?? "",
+  color: product.color ?? product.faceColor ?? "",
+  size: product.size ?? product.faceSize ?? "",
+  specs: serializeSpecs(product.specs),
+});
+
+export const toProductUpdateRequest = async (product: Product): Promise<ProductUpdateRequest> => ({
+  ...(await toProductCreateRequest(product)),
+  status: product.status,
+});
+
+const toMockProduct = (
+  id: string,
+  payload: ProductCreateRequest | ProductUpdateRequest,
+  existing?: Product,
+): Product => {
+  const db = getDb();
+  const category = db.categories.find((item) => item.id === payload.categoryId) ?? db.categories[0];
+  const now = new Date().toISOString();
+  const status = "status" in payload ? (payload.status as ProductStatus) : existing?.status ?? "ACTIVE";
+
+  return {
+    id,
+    sku: existing?.sku ?? `SKU-${id.slice(-6)}`,
+    name: payload.name,
+    brand: payload.brand,
+    category,
+    description: payload.description,
+    price: payload.price,
+    salePrice: existing?.salePrice,
+    stockQuantity: payload.stockQuantity,
+    movementType: payload.movementType,
+    glassMaterial: payload.glassMaterial,
+    waterResistance: payload.waterResistance,
+    faceSize: payload.faceSize,
+    thickness: existing?.thickness,
+    strapMaterial: existing?.strapMaterial ?? payload.wireMaterial,
+    strapColor: existing?.strapColor ?? payload.wireColor,
+    wireMaterial: payload.wireMaterial,
+    wireColor: payload.wireColor,
+    caseColor: payload.caseColor,
+    faceColor: payload.faceColor,
+    gender: existing?.gender,
+    color: payload.color,
+    size: payload.size,
+    specs: parseSpecs(payload.specs),
+    status,
+    averageRating: existing?.averageRating,
+    rating: existing?.rating,
+    reviewCount: existing?.reviewCount,
+    images: existing?.images ?? [],
+    imageUrls: existing?.imageUrls,
+    tags: existing?.tags,
+    isFeatured: existing?.isFeatured,
+    isBestSeller: existing?.isBestSeller,
+    isNewArrival: existing?.isNewArrival,
+    relatedProducts: existing?.relatedProducts,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+};
+
+async function createProduct(payload: ProductCreateRequest): Promise<Product> {
+  try {
+    const data = await productApi.createProduct(payload);
+    return mapBackendProduct(data);
+  } catch {
+    await delay(180);
+    const created = toMockProduct(`p-${Date.now()}`, payload);
+    getDb().products.unshift(created);
+    return structuredClone(created);
+  }
+}
+
+async function updateProduct(id: string, payload: ProductUpdateRequest): Promise<Product> {
+  try {
+    const data = await productApi.updateProduct(id, payload);
+    return mapBackendProduct(data);
+  } catch {
+    await delay(180);
+    const db = getDb();
+    const exists = db.products.find((item) => item.id === id);
+    if (!exists) {
+      throw new Error("Không tìm thấy sản phẩm để cập nhật.");
+    }
+    const nextProduct = toMockProduct(id, payload, exists);
+    Object.assign(exists, nextProduct);
+    return structuredClone(exists);
+  }
+}
+
+const toVoucherRequest = (voucher: Voucher) => {
+  const now = new Date();
+  const validTo = voucher.isActive ? new Date(voucher.validTo) : new Date(now.getTime() - 1000);
   return {
     code: voucher.code.trim().toUpperCase(),
     discountPercent: voucher.discountPercent,
@@ -288,38 +403,8 @@ export const adminService = {
     return productService.getById(productId);
   },
 
-  async saveProduct(input: Product): Promise<Product> {
-    try {
-      const categoryId = await getCategoryIdForProduct(input);
-      const payload = {
-        brand: input.brand ?? "",
-        name: input.name,
-        description: input.description ?? "",
-        price: Math.round(input.price),
-        stockQuantity: Math.max(0, Math.round(input.stockQuantity)),
-        categoryId,
-        partNumber: input.sku ?? input.id.toUpperCase(),
-        powerSource: input.movementType ?? "",
-        license: input.wireMaterial ?? "",
-        warranty: input.waterResistance ?? "",
-      };
-      const isPersisted = Boolean(input.id && !input.id.startsWith("p-"));
-      const { data } = isPersisted
-        ? await axiosClient.put(`/products/${input.id}`, payload)
-        : await axiosClient.post("/products/create", payload);
-      return mapBackendProduct(data);
-    } catch {
-      await delay(180);
-      const db = getDb();
-      const exists = db.products.find((item) => item.id === input.id);
-      if (exists) {
-        Object.assign(exists, input);
-        return structuredClone(exists);
-      }
-      db.products.unshift(input);
-      return structuredClone(input);
-    }
-  },
+  createProduct,
+  updateProduct,
 
   async listSuppliers(params: SupplierListParams = {}): Promise<SupplierListResult> {
     const page = Math.max(1, params.page ?? 1);

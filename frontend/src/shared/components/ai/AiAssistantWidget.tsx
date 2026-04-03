@@ -158,7 +158,7 @@ export const AiAssistantWidget = () => {
                     </p>
                     {recommendationQuery.data.map((product) => (
                       <Link
-                        to={`/product/${product.slug}`}
+                        to={`/products/${product.id}`}
                         key={product.id}
                         className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm hover:border-luxury-gold"
                       >

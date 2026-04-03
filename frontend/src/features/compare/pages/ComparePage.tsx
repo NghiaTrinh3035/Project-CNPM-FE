@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import { productService } from "@/services/productService";
@@ -26,18 +27,31 @@ const rows = [
 
 export const ComparePage = () => {
   const { productIds, add, remove, clear } = useCompareStore();
+  const productAId = productIds[0];
+  const productBId = productIds[1];
   const allProductsQuery = useQuery({
     queryKey: ["compare-all-products"],
     queryFn: () => productService.getAll({ page: 1, pageSize: 200 }),
   });
 
   const selectedQuery = useQuery({
-    queryKey: ["compare-selected", productIds.join(",")],
-    queryFn: () => productService.getByIds(productIds),
-    enabled: productIds.length > 0,
+    queryKey: ["compare-selected", productAId, productBId],
+    queryFn: () => productService.compareProducts(productAId, productBId),
+    enabled: !!productAId && !!productBId,
   });
 
   const selectedProducts = selectedQuery.data ?? [];
+
+  useEffect(() => {
+    const availableIds = new Set(allProductsQuery.data?.items.map((item) => item.id) ?? []);
+    if (!productIds.length) {
+      return;
+    }
+    const hasInvalidSelection = productIds.some((id) => !availableIds.has(id));
+    if (hasInvalidSelection) {
+      clear();
+    }
+  }, [allProductsQuery.data?.items, clear, productIds]);
 
   return (
     <section className="mx-auto max-w-7xl space-y-6 px-4 py-10 md:px-6">
@@ -60,12 +74,14 @@ export const ComparePage = () => {
           {[0, 1].map((position) => (
             <Select
               key={position}
-              value={productIds[position] ?? ""}
+              value={position === 0 ? (productAId ?? "") : (productBId ?? "")}
               onChange={(event) => {
                 const id = event.target.value;
                 if (!id) {
-                  if (productIds[position]) {
-                    remove(productIds[position]);
+                  if (position === 0 && productAId) {
+                    remove(productAId);
+                  } else if (position === 1 && productBId) {
+                    remove(productBId);
                   }
                   return;
                 }
@@ -140,7 +156,7 @@ export const ComparePage = () => {
 
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="luxury">
-              <Link to={`/product/${selectedProducts[0].slug}`}>
+              <Link to={`/products/${selectedProducts[0].id}`}>
                 <ShoppingBag className="mr-2 h-4 w-4" />
                 Mua {selectedProducts[0].brand}
               </Link>

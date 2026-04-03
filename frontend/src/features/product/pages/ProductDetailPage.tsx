@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
-
 import { ProductCard } from "@/features/catalog/components/ProductCard";
 import { cartService } from "@/services/cartService";
 import { discussionService } from "@/services/discussionService";
@@ -41,7 +40,7 @@ type DiscussionFormValues = z.infer<typeof discussionSchema>;
 
 export const ProductDetailPage = () => {
   const navigate = useNavigate();
-  const { slug } = useParams<{ slug: string }>();
+  const { productId } = useParams<{ productId: string }>();
   const queryClient = useQueryClient();
   const { user } = useSession();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -50,9 +49,9 @@ export const ProductDetailPage = () => {
   const compareAdd = useCompareStore((state) => state.add);
 
   const productQuery = useQuery({
-    queryKey: ["product-detail", slug],
-    queryFn: () => (slug ? productService.getBySlug(slug) : Promise.resolve(null)),
-    enabled: Boolean(slug),
+    queryKey: ["product-detail", productId],
+    queryFn: () => (productId ? productService.getById(productId) : Promise.resolve(null)),
+    enabled: Boolean(productId),
   });
 
   const reviewsQuery = useQuery({

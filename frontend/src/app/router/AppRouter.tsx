@@ -53,6 +53,9 @@ const StaffSupportPage = lazy(() => import("@/features/staff/pages/StaffSupportP
 
 const OwnerDashboardPage = lazy(() => import("@/features/owner/pages/OwnerDashboardPage").then((m) => ({ default: m.OwnerDashboardPage })));
 const OwnerProductsPage = lazy(() => import("@/features/owner/pages/OwnerProductsPage").then((m) => ({ default: m.OwnerProductsPage })));
+const OwnerProductCreatePage = lazy(() =>
+  import("@/features/owner/pages/OwnerProductCreatePage").then((m) => ({ default: m.OwnerProductCreatePage })),
+);
 const OwnerInventoryPage = lazy(() => import("@/features/owner/pages/OwnerInventoryPage").then((m) => ({ default: m.OwnerInventoryPage })));
 const OwnerSuppliersPage = lazy(() => import("@/features/owner/pages/OwnerSuppliersPage").then((m) => ({ default: m.OwnerSuppliersPage })));
 const OwnerImportReceiptsPage = lazy(() => import("@/features/owner/pages/OwnerImportReceiptsPage").then((m) => ({ default: m.OwnerImportReceiptsPage })));
@@ -145,6 +148,7 @@ export const AppRouter = () => (
         >
           <Route path={ROUTES.owner.dashboard} element={<OwnerDashboardPage />} />
           <Route path={ROUTES.owner.products} element={<OwnerProductsPage />} />
+          <Route path={ROUTES.owner.productCreate} element={<OwnerProductCreatePage />} />
           <Route path={ROUTES.owner.productDetail} element={<OwnerProductDetailPage />} />
           <Route path={ROUTES.owner.inventory} element={<OwnerInventoryPage />} />
           <Route path={ROUTES.owner.suppliers} element={<OwnerSuppliersPage />} />

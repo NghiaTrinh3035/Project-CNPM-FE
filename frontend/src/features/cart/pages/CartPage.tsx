@@ -97,7 +97,7 @@ export const CartPage = () => {
               <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-border/60 p-4 sm:flex-row sm:items-center">
                 <img src={product.images[0]?.url} alt={product.name} className="h-24 w-full rounded-lg object-cover sm:w-24" />
                 <div className="flex-1 space-y-1">
-                  <Link to={`/product/${product.slug}`} className="font-medium hover:text-luxury-gold">
+                  <Link to={`/products/${product.id}`} className="font-medium hover:text-luxury-gold">
                     {product.name}
                   </Link>
                   <p className="text-sm text-muted-foreground">{product.brand}</p>

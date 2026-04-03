@@ -1,6 +1,6 @@
 export const ROUTES = {
   home: "/",
-  productDetail: "/product/:slug",
+  productDetail: "/products/:productId",
   shop: "/shop",
   search: "/search",
   compare: "/compare",
@@ -42,6 +42,7 @@ export const ROUTES = {
   owner: {
     dashboard: "/owner",
     products: "/owner/products",
+    productCreate: "/owner/products/new",
     productDetail: "/owner/products/:id",
     inventory: "/owner/inventory",
     suppliers: "/owner/suppliers",
