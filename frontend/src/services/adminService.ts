@@ -182,6 +182,14 @@ const getCategoryIdForProduct = async (product: Product): Promise<string> => {
   return String(target["id"]);
 };
 
+const getCategoryIdsForProduct = async (product: Product): Promise<string[]> => {
+  const ids = (product.categories ?? []).map((category) => category.id).filter(Boolean);
+  if (ids.length > 0) {
+    return Array.from(new Set(ids));
+  }
+  return [await getCategoryIdForProduct(product)];
+};
+
 const serializeSpecs = (specs: Product["specs"]): string =>
   (specs ?? [])
     .map((spec) => `${spec.label}: ${spec.value}`)
@@ -210,7 +218,7 @@ export const toProductCreateRequest = async (product: Product): Promise<ProductC
   description: product.description ?? "",
   price: Math.round(product.price),
   stockQuantity: Math.max(0, Math.round(product.stockQuantity)),
-  categoryId: await getCategoryIdForProduct(product),
+  categoryIds: await getCategoryIdsForProduct(product),
   movementType: product.movementType ?? "",
   glassMaterial: product.glassMaterial ?? "",
   faceSize: product.faceSize ?? "",
@@ -235,7 +243,15 @@ const toMockProduct = (
   existing?: Product,
 ): Product => {
   const db = getDb();
-  const category = db.categories.find((item) => item.id === payload.categoryId) ?? db.categories[0];
+  const payloadCategoryIds = payload.categoryIds?.length
+    ? payload.categoryIds
+    : payload.categoryId
+      ? [payload.categoryId]
+      : [];
+  const categories = payloadCategoryIds
+    .map((categoryId) => db.categories.find((item) => item.id === categoryId))
+    .filter((item): item is (typeof db.categories)[number] => Boolean(item));
+  const category = categories[0] ?? db.categories[0];
   const now = new Date().toISOString();
   const status = "status" in payload ? (payload.status as ProductStatus) : existing?.status ?? "ACTIVE";
 
@@ -245,6 +261,7 @@ const toMockProduct = (
     name: payload.name,
     brand: payload.brand,
     category,
+    categories: categories.length > 0 ? categories : [category],
     description: payload.description,
     price: payload.price,
     salePrice: existing?.salePrice,

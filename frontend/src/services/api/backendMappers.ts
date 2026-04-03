@@ -114,6 +114,9 @@ type BackendProduct = {
   category?: BackendCategory;
   categoryId?: string;
   categoryName?: string;
+  categories?: BackendCategory[];
+  categoryIds?: string[];
+  categoryNames?: string[];
   images?: BackendImage[];
   imageUrls?: string[];
   averageRating?: number;
@@ -286,12 +289,17 @@ export const mapBackendCategory = (raw: BackendCategory | null | undefined): Cat
 
 export const mapBackendProduct = (raw: BackendProduct | null | undefined): Product => {
   const id = pickString(raw?.id, `p-${Date.now()}`);
-  const category = raw?.category
+  const categoriesFromPayload = (raw?.categories ?? [])
+    .map((item) => mapBackendCategory(item))
+    .filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index);
+  const fallbackCategory = raw?.category
     ? mapBackendCategory(raw.category)
     : mapBackendCategory({
         id: raw?.categoryId,
-        name: raw?.categoryName ?? "General",
+        name: raw?.categoryName ?? raw?.categoryNames?.[0] ?? "General",
       });
+  const categories = categoriesFromPayload.length > 0 ? categoriesFromPayload : [fallbackCategory];
+  const category = categories[0] ?? fallbackCategory;
   const imagePool =
     raw?.images?.map((item, index) => ({
       id: pickString(item.id, `${id}-img-${index + 1}`),
@@ -329,6 +337,7 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
     name: pickString(raw?.name, "Unnamed Product"),
     brand: pickString(raw?.brand, "Unknown"),
     category,
+    categories,
     description: pickString(raw?.description),
     price: toNumber(raw?.price, 0),
     salePrice: raw?.salePrice !== undefined && raw?.salePrice !== null ? toNumber(raw.salePrice, 0) : undefined,
@@ -349,7 +358,7 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
       { label: "Warranty", value: pickString(raw?.warranty, "-") },
       { label: "Water", value: pickString(raw?.waterResistance, "-") },
     ],
-    tags: [pickString(raw?.brand), category.name].filter(Boolean),
+    tags: [pickString(raw?.brand), ...categories.map((item) => item.name)].filter(Boolean),
     isFeatured: false,
     isBestSeller: false,
     isNewArrival: false,

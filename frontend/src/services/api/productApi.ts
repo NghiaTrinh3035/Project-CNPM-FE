@@ -1,5 +1,10 @@
 import axiosClient from "@/api/axiosClient";
 
+export interface ProductCategoryResponse {
+  id: string;
+  name: string;
+}
+
 export interface ProductResponse {
   id: string;
   brand: string;
@@ -19,8 +24,11 @@ export interface ProductResponse {
   size: string;
   specs: string;
   status: string;
-  categoryId: string;
-  categoryName: string;
+  categoryId?: string;
+  categoryName?: string;
+  categoryIds?: string[];
+  categoryNames?: string[];
+  categories?: ProductCategoryResponse[];
   imageUrls: string[];
   averageRating: number;
   updatedAt: string;
@@ -32,7 +40,8 @@ export interface ProductCreateRequest {
   description: string;
   price: number;
   stockQuantity: number;
-  categoryId: string;
+  categoryIds: string[];
+  categoryId?: string;
   movementType: string;
   glassMaterial: string;
   faceSize: string;
@@ -52,7 +61,8 @@ export interface ProductUpdateRequest {
   description: string;
   price: number;
   stockQuantity: number;
-  categoryId: string;
+  categoryIds: string[];
+  categoryId?: string;
   movementType: string;
   glassMaterial: string;
   faceSize: string;
