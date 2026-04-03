@@ -40,6 +40,16 @@ export const AiAssistantWidget = () => {
       setStatus(reply.handledBy === "STAFF" ? "ESCALATED_TO_STAFF" : "AI_HANDLED");
       setActiveRecommendationIds(reply.recommendedProductIds ?? []);
     },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Không thể kết nối AI lúc này.";
+      pushMessage({
+        id: `assistant-error-${Date.now()}`,
+        role: "assistant",
+        content: message,
+        createdAt: new Date().toISOString(),
+        handledBy: "AI",
+      });
+    },
   });
 
   const escalateMutation = useMutation({
