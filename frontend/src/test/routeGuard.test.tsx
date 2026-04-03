@@ -80,4 +80,28 @@ describe("RouteGuard", () => {
     );
     expect(screen.getByText("protected-screen")).toBeInTheDocument();
   });
+
+  it("chặn staff truy cập route owner vouchers", () => {
+    mockedUseSession.mockReturnValue({
+      isAuthenticated: true,
+      logout: vi.fn(),
+      user: {
+        id: "u-3",
+        fullName: "Staff",
+        username: "staff",
+        email: "staff@example.com",
+        phone: "",
+        role: "STAFF",
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    renderWithRouter(
+      ROUTES.owner.vouchers,
+      <RouteGuard allowRoles={["OWNER"]}>
+        <div>protected-screen</div>
+      </RouteGuard>,
+    );
+    expect(screen.getByText("forbidden-screen")).toBeInTheDocument();
+  });
 });

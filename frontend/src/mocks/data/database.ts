@@ -1,4 +1,4 @@
-import { carts, importReceipts, notifications, orders, revenueReports, staticContentPages, suppliers, vouchers, warrantyRequests } from "@/mocks/data/commerce";
+import { carts, importReceipts, notifications, orders, revenueReports, staticContentPages, warrantyRequests } from "@/mocks/data/commerce";
 import { categories } from "@/mocks/data/categories";
 import { hydratedProducts } from "@/mocks/data/products";
 import { discussionComments, reviews, supportTickets } from "@/mocks/data/social";
@@ -11,10 +11,8 @@ import type {
   Product,
   Review,
   StaticPageContent,
-  Supplier,
   SupportTicket,
   User,
-  Voucher,
   WarrantyRequest,
 } from "@/shared/types/domain";
 
@@ -31,8 +29,6 @@ interface MockDatabase {
   discussions: DiscussionComment[];
   notifications: Notification[];
   warranties: WarrantyRequest[];
-  vouchers: Voucher[];
-  suppliers: Supplier[];
   importReceipts: typeof importReceipts;
   revenueReports: typeof revenueReports;
   supportTickets: SupportTicket[];
@@ -51,8 +47,6 @@ const source: MockDatabase = {
   discussions: clone(discussionComments),
   notifications: clone(notifications),
   warranties: clone(warrantyRequests),
-  vouchers: clone(vouchers),
-  suppliers: clone(suppliers),
   importReceipts: clone(importReceipts),
   revenueReports: clone(revenueReports),
   supportTickets: clone(supportTickets),

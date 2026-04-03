@@ -85,6 +85,10 @@ export const StaffCustomersPage = () => {
 		  />
 		</CardHeader>
 		<CardContent>
+		  {customersQuery.isError ? (
+			<p className="mb-3 text-sm text-red-500">{(customersQuery.error as Error).message}</p>
+		  ) : null}
+
 		  <Table>
 			<TableHeader>
 			  <TableRow>

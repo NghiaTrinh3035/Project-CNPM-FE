@@ -37,6 +37,10 @@ export const StaffCustomerDetailPage = () => {
 		<CardTitle>Chi tiết khách hàng</CardTitle>
 	  </CardHeader>
 	  <CardContent>
+		{customerQuery.isError ? (
+		  <p className="text-sm text-red-500">{(customerQuery.error as Error).message}</p>
+		) : null}
+
 		{!customerQuery.isLoading && !customer ? (
 		  <p className="text-sm text-muted-foreground">Không tìm thấy khách hàng. <button className="underline" onClick={() => navigate(ROUTES.staff.customers)}>Về danh sách</button></p>
 		) : null}

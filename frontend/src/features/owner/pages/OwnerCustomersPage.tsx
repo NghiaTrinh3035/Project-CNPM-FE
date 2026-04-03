@@ -94,6 +94,10 @@ export const OwnerCustomersPage = () => {
           <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm theo tên hoặc email..." />
         </CardHeader>
         <CardContent>
+          {customersQuery.isError ? (
+            <p className="mb-3 text-sm text-red-500">{(customersQuery.error as Error).message}</p>
+          ) : null}
+
           <Table>
             <TableHeader>
               <TableRow>

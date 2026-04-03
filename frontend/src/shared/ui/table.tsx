@@ -1,5 +1,5 @@
 import { cn } from "@/shared/lib/cn";
-import type { HTMLAttributes, TableHTMLAttributes } from "react";
+import type { HTMLAttributes, TableHTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from "react";
 
 export const Table = ({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) => (
   <div className="w-full overflow-auto">
@@ -19,10 +19,10 @@ export const TableRow = ({ className, ...props }: HTMLAttributes<HTMLTableRowEle
   <tr className={cn("border-b border-border transition-colors hover:bg-muted/50", className)} {...props} />
 );
 
-export const TableHead = ({ className, ...props }: HTMLAttributes<HTMLTableCellElement>) => (
+export const TableHead = ({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) => (
   <th className={cn("h-12 px-4 text-left align-middle font-medium text-muted-foreground", className)} {...props} />
 );
 
-export const TableCell = ({ className, ...props }: HTMLAttributes<HTMLTableCellElement>) => (
+export const TableCell = ({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) => (
   <td className={cn("p-4 align-middle", className)} {...props} />
 );

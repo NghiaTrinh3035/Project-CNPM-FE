@@ -12,9 +12,11 @@ import type {
   ProductStatus,
   Review,
   ShippingAddress,
+  Supplier,
   User,
   UserRole,
   Voucher,
+  VoucherStatus,
 } from "@/shared/types/domain";
 import { toSlug } from "@/shared/utils/slug";
 
@@ -143,6 +145,13 @@ type BackendUser = {
   createdAt?: string | number | Date;
 };
 
+type BackendSupplier = {
+  id?: string;
+  name?: string;
+  contractInfo?: string | null;
+  address?: string | null;
+};
+
 type BackendCartItem = {
   id?: string;
   quantity?: number;
@@ -218,14 +227,19 @@ type BackendReview = {
 
 type BackendVoucher = {
   id?: string;
+  code?: string;
   voucherCode?: string;
   discountPercent?: number;
+  quantity?: number;
+  usageCount?: number;
+  isUsed?: boolean;
   minOrderAmount?: number;
   validFrom?: string | number | Date;
   validTo?: string | number | Date;
   usedCount?: number;
   maxUsage?: number;
   status?: string;
+  createdAt?: string | number | Date;
 };
 
 type BackendNotification = {
@@ -366,6 +380,13 @@ export const mapBackendUser = (raw: BackendUser | null | undefined): User => {
   };
 };
 
+export const mapBackendSupplier = (raw: BackendSupplier | null | undefined): Supplier => ({
+  id: pickString(raw?.id, `s-${Date.now()}`),
+  name: pickString(raw?.name, "Nhà cung cấp"),
+  contractInfo: pickString(raw?.contractInfo).trim() || null,
+  address: pickString(raw?.address).trim() || null,
+});
+
 export const mapBackendCart = (
   raw: BackendCart | null | undefined,
   options: { userId: string; voucherCode?: string } = { userId: "" },
@@ -487,24 +508,28 @@ export const mapBackendReview = (raw: BackendReview | null | undefined): Review 
 });
 
 export const mapBackendVoucher = (raw: BackendVoucher | null | undefined): Voucher => {
-  const code = pickString(raw?.voucherCode);
+  const code = pickString(raw?.code ?? raw?.voucherCode);
   const validFrom = toIso(raw?.validFrom);
   const validTo = toIso(raw?.validTo);
-  const now = Date.now();
-  const activeByTime = Date.parse(validFrom) <= now && now <= Date.parse(validTo);
-  const activeByStatus = pickString(raw?.status).toUpperCase() === "ACTIVE";
-  const usedCount = toNumber(raw?.usedCount, 0);
-  const maxUsage = toNumber(raw?.maxUsage, 1);
+  const normalizedStatus = pickString(raw?.status).toUpperCase() as VoucherStatus;
+  const status: VoucherStatus = ["ACTIVE", "EXPIRED", "USED_UP"].includes(normalizedStatus)
+    ? normalizedStatus
+    : "ACTIVE";
+  const quantity = Math.max(0, toNumber(raw?.quantity, 0));
+  const usedCount = Math.max(
+    0,
+    toNumber(raw?.usageCount ?? raw?.usedCount, raw?.isUsed ? 1 : 0),
+  );
   return {
     id: pickString(raw?.id, `v-${Date.now()}`),
     code,
-    title: code || "Voucher",
-    description: `Giảm ${toNumber(raw?.discountPercent, 0)}% cho đơn từ ${toNumber(raw?.minOrderAmount, 0)} VND`,
     discountPercent: toNumber(raw?.discountPercent, 0),
-    minOrderValue: toNumber(raw?.minOrderAmount, 0),
+    usedCount,
+    quantity,
+    status,
+    createdAt: toIso(raw?.createdAt ?? raw?.validFrom),
     validFrom,
     validTo,
-    isActive: activeByStatus && activeByTime && usedCount < maxUsage,
   };
 };
 
