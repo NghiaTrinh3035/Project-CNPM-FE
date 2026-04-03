@@ -19,16 +19,6 @@ export interface OwnerOverview {
   bestSellerStats: Array<{ name: string; sold: number }>;
 }
 
-export interface CustomerUpsertPayload {
-  username: string;
-  password?: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-  gender: NonNullable<User["gender"]>;
-}
-
 export interface CustomerListParams {
   page?: number;
   pageSize?: number;
@@ -42,13 +32,64 @@ export interface CustomerListResult {
   totalPages: number;
 }
 
-let voucherCache: Voucher[] = [];
+export interface StaffListParams {
+  page?: number;
+  pageSize?: number;
+}
 
-const mergeVouchers = (source: Voucher[], extra: Voucher[]) => {
-  const map = new Map<string, Voucher>();
-  [...source, ...extra].forEach((voucher) => map.set(voucher.id, voucher));
-  return Array.from(map.values()).sort((a, b) => Date.parse(b.validFrom) - Date.parse(a.validFrom));
-};
+export interface StaffListResult {
+  items: User[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface CustomerLockPayload {
+  customerId: string;
+  isActive: boolean;
+}
+
+export interface StaffLockPayload {
+  staffId: string;
+  isActive: boolean;
+}
+
+export interface VoucherListParams {
+  keyword?: string;
+  status?: VoucherStatus | null;
+  active?: boolean | null;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface VoucherListResult {
+  items: Voucher[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SupplierListParams {
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SupplierListResult {
+  items: Supplier[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SupplierPayload {
+  name: string;
+  contractInfo: string | null;
+  address: string | null;
+}
 
 const calcRevenue = (orders: Awaited<ReturnType<typeof orderService.getAllOrders>>) =>
   orders.reduce((sum, order) => {
@@ -219,12 +260,12 @@ const toVoucherRequest = (voucher: Voucher) => {
   const now = new Date();
   const validTo = voucher.isActive ? new Date(voucher.validTo) : new Date(now.getTime() - 1000);
   return {
-    voucherCode: voucher.code,
+    code: voucher.code.trim().toUpperCase(),
     discountPercent: voucher.discountPercent,
-    minOrderAmount: voucher.minOrderValue,
+    quantity: voucher.quantity,
+    status: voucher.status,
     validFrom: new Date(voucher.validFrom).toISOString(),
-    validTo: validTo.toISOString(),
-    maxUsage: 100,
+    validTo: new Date(voucher.validTo).toISOString(),
   };
 };
 
@@ -254,6 +295,60 @@ const toApiErrorMessage = (error: unknown, fallback: string) => {
 
 const toCustomerPage = (data: unknown, page: number, pageSize: number): CustomerListResult => {
   const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
+const toStaffPage = (data: unknown, page: number, pageSize: number): StaffListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
+const toVoucherPage = (data: unknown, page: number, pageSize: number): VoucherListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendVoucher(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
+const toSupplierPage = (data: unknown, page: number, pageSize: number): SupplierListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendSupplier(item));
   const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
 
   const total = Number(payload["totalElements"] ?? content.length);
@@ -311,9 +406,55 @@ export const adminService = {
   createProduct,
   updateProduct,
 
-  async listSuppliers(): Promise<Supplier[]> {
-    await delay(120);
-    return getDb().suppliers;
+  async listSuppliers(params: SupplierListParams = {}): Promise<SupplierListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    const keyword = params.keyword?.trim() ?? "";
+    try {
+      const { data } = keyword
+        ? await axiosClient.get("/suppliers/search", {
+            params: {
+              keyword,
+              page: page - 1,
+              size: pageSize,
+            },
+          })
+        : await axiosClient.get("/suppliers", {
+            params: {
+              page: page - 1,
+              size: pageSize,
+            },
+          });
+      return toSupplierPage(data, page, pageSize);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tải danh sách nhà cung cấp."));
+    }
+  },
+
+  async createSupplier(payload: SupplierPayload): Promise<Supplier> {
+    try {
+      const { data } = await axiosClient.post("/suppliers", payload);
+      return mapBackendSupplier(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo nhà cung cấp."));
+    }
+  },
+
+  async updateSupplier(supplierId: string, payload: SupplierPayload): Promise<Supplier> {
+    try {
+      const { data } = await axiosClient.put(`/suppliers/${supplierId}`, payload);
+      return mapBackendSupplier(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật nhà cung cấp."));
+    }
+  },
+
+  async removeSupplier(supplierId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/suppliers/${supplierId}`);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể xóa nhà cung cấp."));
+    }
   },
 
   async listImportReceipts() {
@@ -327,6 +468,107 @@ export const adminService = {
     try {
       const { data } = await axiosClient.get("/customers", { params: { page: page - 1, size: pageSize } });
       return toCustomerPage(data, page, pageSize);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tải danh sách khách hàng."));
+    }
+  },
+
+  async getCustomerById(customerId: string): Promise<User | null> {
+    try {
+      const { data } = await axiosClient.get(`/customers/${customerId}`);
+      return mapBackendUser(data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw new Error(toApiErrorMessage(error, "Không thể tải chi tiết khách hàng."));
+    }
+  },
+
+  async removeCustomer(customerId: string) {
+    try {
+      await axiosClient.delete(`/customers/${customerId}`);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể xóa khách hàng."));
+    }
+  },
+
+  async setCustomerActiveStatus({ customerId, isActive }: CustomerLockPayload): Promise<User> {
+    try {
+      const path = isActive ? "unlock" : "lock";
+      const { data } = await axiosClient.patch(`/customers/${customerId}/${path}`);
+      return mapBackendUser(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật trạng thái khách hàng."));
+    }
+  },
+
+  async promoteCustomerToStaff(customerId: string): Promise<User> {
+    try {
+      const { data } = await axiosClient.patch(`/customers/${customerId}/promote-to-staff`);
+      return mapBackendUser(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể nâng quyền khách hàng."));
+    }
+  },
+
+  async listStaff(params: StaffListParams = {}): Promise<StaffListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    try {
+      const { data } = await axiosClient.get("/staff", { params: { page: page - 1, size: pageSize } });
+      return toStaffPage(data, page, pageSize);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tải danh sách nhân viên."));
+    }
+  },
+
+  async getStaffById(staffId: string): Promise<User | null> {
+    try {
+      const { data } = await axiosClient.get(`/staff/${staffId}`);
+      return mapBackendUser(data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw new Error(toApiErrorMessage(error, "Không thể tải chi tiết nhân viên."));
+    }
+  },
+
+  async setStaffActiveStatus({ staffId, isActive }: StaffLockPayload): Promise<User> {
+    try {
+      const path = isActive ? "unlock" : "lock";
+      const { data } = await axiosClient.patch(`/users/${staffId}/${path}`);
+      return mapBackendUser(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật trạng thái nhân viên."));
+    }
+  },
+
+
+  async removeStaff(staffId: string) {
+    try {
+      await axiosClient.delete(`/users/${staffId}`);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể xóa nhân viên."));
+    }
+  },
+
+  async listVouchers(params: VoucherListParams = {}): Promise<VoucherListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    const keyword = params.keyword?.trim() ?? "";
+    try {
+      const { data } = await axiosClient.get("/vouchers", {
+        params: {
+          page: page - 1,
+          size: pageSize,
+          ...(keyword ? { keyword } : {}),
+          ...(params.status ? { status: params.status } : {}),
+          ...(typeof params.active === "boolean" ? { active: params.active } : {}),
+        },
+      });
+      return toVoucherPage(data, page, pageSize);
     } catch {
       return {
         items: [],
@@ -338,142 +580,31 @@ export const adminService = {
     }
   },
 
-  async getCustomerById(customerId: string): Promise<User | null> {
-    try {
-      const { data } = await axiosClient.get(`/customers/${customerId}`);
-      return mapBackendUser(data);
-    } catch {
-      return null;
-    }
-  },
-
-  async createCustomer(payload: CustomerUpsertPayload): Promise<User> {
-    try {
-      const { data } = await axiosClient.post("/customers", {
-        username: payload.username,
-        password: payload.password ?? "Customer@123",
-        fullName: payload.fullName,
-        email: payload.email,
-        phone: payload.phone,
-        address: payload.address,
-        gender: payload.gender,
-      });
-      const mapped = mapBackendUser(data);
-      return { ...mapped, fullName: payload.fullName, role: "CUSTOMER" };
-    } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the tao khach hang."));
-    }
-  },
-
-  async updateCustomer(customerId: string, payload: Omit<CustomerUpsertPayload, "password">): Promise<User> {
-    try {
-      const { data } = await axiosClient.put(`/customers/${customerId}`, {
-        fullName: payload.fullName,
-        email: payload.email,
-        phone: payload.phone,
-        address: payload.address,
-        gender: payload.gender,
-      });
-      const mapped = mapBackendUser(data);
-      return { ...mapped, fullName: payload.fullName, role: "CUSTOMER" };
-    } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the cap nhat khach hang."));
-    }
-  },
-
-  async removeCustomer(customerId: string) {
-    try {
-      await axiosClient.delete(`/customers/${customerId}`);
-    } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the xoa khach hang."));
-    }
-  },
-
-  async listStaff(): Promise<User[]> {
-    try {
-      const { data } = await axiosClient.get("/users/role/STAFF");
-      return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
-    } catch {
-      await delay(120);
-      return getDb().staff;
-    }
-  },
-
-  async saveStaff(staff: User): Promise<User> {
-    try {
-      const payload = {
-        username: staff.username || toSlug(staff.fullName || staff.email || "staff"),
-        password: "Staff@123",
-        email: staff.email,
-        phone: staff.phone,
-        address: staff.address ?? "",
-        gender: staff.gender ?? "OTHER",
-        role: "STAFF",
-      };
-      const isPersisted = Boolean(staff.id && !staff.id.startsWith("u-staff-"));
-      const { data } = isPersisted
-        ? await axiosClient.put(`/users/${staff.id}`, payload)
-        : await axiosClient.post("/users", payload);
-      const mapped = mapBackendUser(data);
-      return { ...mapped, fullName: staff.fullName || mapped.fullName };
-    } catch {
-      await delay(140);
-      const db = getDb();
-      const existing = db.staff.find((item) => item.id === staff.id);
-      if (existing) {
-        Object.assign(existing, staff);
-        return structuredClone(existing);
-      }
-      db.staff.unshift(staff);
-      db.users.push(staff);
-      return structuredClone(staff);
-    }
-  },
-
-  async removeStaff(staffId: string) {
-    try {
-      await axiosClient.delete(`/users/${staffId}`);
-    } catch {
-      await delay(100);
-      const db = getDb();
-      db.staff = db.staff.filter((item) => item.id !== staffId);
-      db.users = db.users.filter((item) => item.id !== staffId);
-    }
-  },
-
-  async listVouchers(): Promise<Voucher[]> {
-    try {
-      const { data } = await axiosClient.get("/vouchers/active");
-      const active = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendVoucher(item));
-      voucherCache = mergeVouchers(active, voucherCache);
-      return voucherCache;
-    } catch {
-      await delay(120);
-      return mergeVouchers(voucherCache, getDb().vouchers);
-    }
-  },
-
-  async saveVoucher(voucher: Voucher): Promise<Voucher> {
+  async createVoucher(voucher: VoucherCreatePayload): Promise<Voucher> {
     try {
       const payload = toVoucherRequest(voucher);
-      const isPersisted = Boolean(voucher.id && !voucher.id.startsWith("v-"));
-      const { data } = isPersisted
-        ? await axiosClient.put(`/vouchers/${voucher.id}`, payload)
-        : await axiosClient.post("/vouchers", payload);
-      const mapped = mapBackendVoucher(data);
-      voucherCache = mergeVouchers([mapped], voucherCache);
-      return mapped;
-    } catch {
-      await delay(140);
-      const db = getDb();
-      const current = db.vouchers.find((item) => item.id === voucher.id);
-      if (current) {
-        Object.assign(current, voucher);
-      } else {
-        db.vouchers.unshift(voucher);
-      }
-      voucherCache = mergeVouchers([voucher], voucherCache);
-      return structuredClone(voucher);
+      const { data } = await axiosClient.post("/vouchers", payload);
+      return mapBackendVoucher(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo voucher."));
+    }
+  },
+
+  async updateVoucher(voucherId: string, voucher: VoucherUpdatePayload): Promise<Voucher> {
+    try {
+      const payload = toVoucherRequest(voucher);
+      const { data } = await axiosClient.put(`/vouchers/${voucherId}`, payload);
+      return mapBackendVoucher(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật voucher."));
+    }
+  },
+
+  async removeVoucher(voucherId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/vouchers/${voucherId}`);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể xóa voucher."));
     }
   },
 

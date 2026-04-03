@@ -5,35 +5,9 @@ import type {
   Order,
   RevenueReport,
   StaticPageContent,
-  Supplier,
-  Voucher,
   WarrantyRequest,
 } from "@/shared/types/domain";
 
-export const vouchers: Voucher[] = [
-  {
-    id: "v-001",
-    code: "LUXURY10",
-    title: "Ưu đãi khách hàng thành viên",
-    description: "Giảm 10% cho đơn từ 20 triệu.",
-    discountPercent: 10,
-    minOrderValue: 20_000_000,
-    validFrom: "2026-03-01T00:00:00.000Z",
-    validTo: "2026-06-01T00:00:00.000Z",
-    isActive: true,
-  },
-  {
-    id: "v-002",
-    code: "WELCOME5",
-    title: "Ưu đãi khách hàng mới",
-    description: "Giảm 5% tối đa 2 triệu.",
-    discountPercent: 5,
-    minOrderValue: 5_000_000,
-    validFrom: "2026-01-01T00:00:00.000Z",
-    validTo: "2026-12-31T00:00:00.000Z",
-    isActive: true,
-  },
-];
 
 export const carts: Cart[] = [
   {
@@ -291,26 +265,6 @@ export const notifications: Notification[] = [
   },
 ];
 
-export const suppliers: Supplier[] = [
-  {
-    id: "s-001",
-    name: "Swiss Prestige Distribution",
-    contactName: "Mr. Adrian Keller",
-    phone: "+41-22-123-456",
-    email: "adrian@swissprestige.ch",
-    address: "Rue du Rhone 36, Geneve, Switzerland",
-    isActive: true,
-  },
-  {
-    id: "s-002",
-    name: "Japan Watch Group",
-    contactName: "Ms. Aiko Tanaka",
-    phone: "+81-3-2233-8899",
-    email: "aiko@jwg.jp",
-    address: "2-11 Ginza, Chuo, Tokyo, Japan",
-    isActive: true,
-  },
-];
 
 export const importReceipts: ImportReceipt[] = [
   {

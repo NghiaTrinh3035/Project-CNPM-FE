@@ -15,6 +15,8 @@ export type PaymentMethod = "COD" | "BANK_TRANSFER";
 
 export type WarrantyStatus = "RECEIVED" | "PROCESSING" | "REJECTED" | "COMPLETED";
 
+export type VoucherStatus = "ACTIVE" | "EXPIRED" | "USED_UP";
+
 export type NotificationType =
   | "ORDER"
   | "WARRANTY"
@@ -193,14 +195,25 @@ export interface WarrantyRequest {
 export interface Voucher {
   id: string;
   code: string;
-  title: string;
-  description: string;
   discountPercent: number;
-  minOrderValue: number;
+  usedCount: number;
+  quantity: number;
+  status: VoucherStatus;
+  createdAt: string;
   validFrom: string;
   validTo: string;
-  isActive: boolean;
 }
+
+export interface VoucherCreatePayload {
+  code: string;
+  discountPercent: number;
+  validFrom: string;
+  validTo: string;
+  quantity: number;
+  status?: VoucherStatus;
+}
+
+export type VoucherUpdatePayload = VoucherCreatePayload;
 
 export interface Review {
   id: string;
@@ -236,11 +249,8 @@ export interface Notification {
 export interface Supplier {
   id: string;
   name: string;
-  contactName: string;
-  phone: string;
-  email: string;
-  address: string;
-  isActive: boolean;
+  contractInfo: string | null;
+  address: string | null;
 }
 
 export interface ImportDetail {

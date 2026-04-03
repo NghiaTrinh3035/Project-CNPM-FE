@@ -34,9 +34,13 @@ export const StaffCustomerDetailPage = () => {
 		  <ArrowLeft className="mr-2 h-4 w-4" />
 		  Quay lại
 		</Button>
-		<CardTitle>Chi tiết khách hàng (Staff)</CardTitle>
+		<CardTitle>Chi tiết khách hàng</CardTitle>
 	  </CardHeader>
 	  <CardContent>
+		{customerQuery.isError ? (
+		  <p className="text-sm text-red-500">{(customerQuery.error as Error).message}</p>
+		) : null}
+
 		{!customerQuery.isLoading && !customer ? (
 		  <p className="text-sm text-muted-foreground">Không tìm thấy khách hàng. <button className="underline" onClick={() => navigate(ROUTES.staff.customers)}>Về danh sách</button></p>
 		) : null}
@@ -51,8 +55,7 @@ export const StaffCustomerDetailPage = () => {
 			<DetailRow label="Địa chỉ" value={customer.address || "--"} />
 			<DetailRow label="Giới tính" value={customer.gender || "--"} />
 			<DetailRow label="Vai trò" value={customer.role} />
-			<DetailRow label="Trạng thái" value={customer.isActive ? "ACTIVE" : "INACTIVE"} />
-			<DetailRow label="Avatar" value={customer.avatar || "--"} />
+			<DetailRow label="Trạng thái" value={customer.isActive ? "Đang hoạt động" : "Đã khóa"} />
 			<DetailRow label="Ngày tạo" value={toShortDate(customer.createdAt)} />
 		  </div>
 		) : null}

@@ -41,7 +41,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-72 border-r border-border/60 bg-card/40 p-6 lg:block">
         <p className="text-xs uppercase tracking-[0.3em] text-luxury-gold">ChronoLux Console</p>
-        <h2 className="mt-2 font-display text-2xl">{role === "OWNER" ? "Owner Dashboard" : "Staff Dashboard"}</h2>
+        <h2 className="mt-2 font-display text-2xl">{role === "OWNER" ? "Bảng điều khiển Chủ cửa hàng" : "Bảng điều khiển Nhân viên"}</h2>
         <nav className="mt-8 space-y-1">
           {menu.map((item) => (
             <NavLink

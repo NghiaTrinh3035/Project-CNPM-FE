@@ -52,6 +52,7 @@ export const ROUTES = {
     warranties: "/owner/warranties",
     warrantyDetail: "/owner/warranties/:id",
     staff: "/owner/staff",
+    staffDetail: "/owner/staff/:id",
     vouchers: "/owner/vouchers",
     reports: "/owner/reports",
     content: "/owner/content",
