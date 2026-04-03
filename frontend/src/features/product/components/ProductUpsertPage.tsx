@@ -38,8 +38,6 @@ const defaultValues: ProductManageValues = {
   wireColor: "",
   caseColor: "",
   faceColor: "",
-  color: "",
-  size: "",
   status: "OUT_OF_STOCK",
 };
 
@@ -90,8 +88,6 @@ export const ProductUpsertPage = ({ mode, role, productId }: ProductUpsertPagePr
       wireColor: product.wireColor ?? product.strapColor ?? "",
       caseColor: product.caseColor ?? "",
       faceColor: product.faceColor ?? "",
-      color: product.color ?? "",
-      size: product.size ?? "",
       status: toNormalizedStatus(product.stockQuantity, product.status),
     });
   }, [mode, productQuery.data]);
@@ -113,8 +109,7 @@ export const ProductUpsertPage = ({ mode, role, productId }: ProductUpsertPagePr
         wireColor: values.wireColor.trim(),
         caseColor: values.caseColor.trim(),
         faceColor: values.faceColor.trim(),
-        color: values.color.trim(),
-        size: values.size.trim(),
+        specs: "",
       };
 
       if (mode === "create") {
@@ -138,11 +133,10 @@ export const ProductUpsertPage = ({ mode, role, productId }: ProductUpsertPagePr
       toast.success(mode === "create" ? "Đã thêm sản phẩm mới." : "Đã cập nhật sản phẩm.");
       queryClient.invalidateQueries({ queryKey: ["owner-products"] });
       queryClient.invalidateQueries({ queryKey: ["staff-products"] });
-      queryClient.invalidateQueries({ queryKey: ["owner-product-detail", savedProduct.id] });
-      queryClient.invalidateQueries({ queryKey: ["staff-product-detail", savedProduct.id] });
-      if (mode === "create") {
-        navigate(listRoute);
-      }
+      queryClient.invalidateQueries({ queryKey: ["owner-products", "detail", savedProduct.id] });
+      queryClient.invalidateQueries({ queryKey: ["staff-products", "detail", savedProduct.id] });
+      queryClient.invalidateQueries({ queryKey: ["product-upsert", savedProduct.id] });
+      navigate(listRoute);
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -265,16 +259,38 @@ export const ProductUpsertPage = ({ mode, role, productId }: ProductUpsertPagePr
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Input placeholder="Bộ máy" value={formValues.movementType} onChange={(event) => setFormValues((prev) => ({ ...prev, movementType: event.target.value }))} />
-          <Input placeholder="Mặt kính" value={formValues.glassMaterial} onChange={(event) => setFormValues((prev) => ({ ...prev, glassMaterial: event.target.value }))} />
-          <Input placeholder="Chống nước" value={formValues.waterResistance} onChange={(event) => setFormValues((prev) => ({ ...prev, waterResistance: event.target.value }))} />
-          <Input placeholder="Kích thước mặt" value={formValues.faceSize} onChange={(event) => setFormValues((prev) => ({ ...prev, faceSize: event.target.value }))} />
-          <Input placeholder="Chất liệu dây" value={formValues.wireMaterial} onChange={(event) => setFormValues((prev) => ({ ...prev, wireMaterial: event.target.value }))} />
-          <Input placeholder="Màu dây" value={formValues.wireColor} onChange={(event) => setFormValues((prev) => ({ ...prev, wireColor: event.target.value }))} />
-          <Input placeholder="Màu vỏ" value={formValues.caseColor} onChange={(event) => setFormValues((prev) => ({ ...prev, caseColor: event.target.value }))} />
-          <Input placeholder="Màu mặt" value={formValues.faceColor} onChange={(event) => setFormValues((prev) => ({ ...prev, faceColor: event.target.value }))} />
-          <Input placeholder="Màu tổng thể" value={formValues.color} onChange={(event) => setFormValues((prev) => ({ ...prev, color: event.target.value }))} />
-          <Input placeholder="Kích cỡ" value={formValues.size} onChange={(event) => setFormValues((prev) => ({ ...prev, size: event.target.value }))} />
+          <div>
+            <Input placeholder="Bộ máy" value={formValues.movementType} onChange={(event) => setFormValues((prev) => ({ ...prev, movementType: event.target.value }))} />
+            {errors.movementType ? <p className="mt-1 text-xs text-red-500">{errors.movementType}</p> : null}
+          </div>
+          <div>
+            <Input placeholder="Mặt kính" value={formValues.glassMaterial} onChange={(event) => setFormValues((prev) => ({ ...prev, glassMaterial: event.target.value }))} />
+            {errors.glassMaterial ? <p className="mt-1 text-xs text-red-500">{errors.glassMaterial}</p> : null}
+          </div>
+          <div>
+            <Input placeholder="Chống nước" value={formValues.waterResistance} onChange={(event) => setFormValues((prev) => ({ ...prev, waterResistance: event.target.value }))} />
+            {errors.waterResistance ? <p className="mt-1 text-xs text-red-500">{errors.waterResistance}</p> : null}
+          </div>
+          <div>
+            <Input placeholder="Kích thước mặt" value={formValues.faceSize} onChange={(event) => setFormValues((prev) => ({ ...prev, faceSize: event.target.value }))} />
+            {errors.faceSize ? <p className="mt-1 text-xs text-red-500">{errors.faceSize}</p> : null}
+          </div>
+          <div>
+            <Input placeholder="Chất liệu dây" value={formValues.wireMaterial} onChange={(event) => setFormValues((prev) => ({ ...prev, wireMaterial: event.target.value }))} />
+            {errors.wireMaterial ? <p className="mt-1 text-xs text-red-500">{errors.wireMaterial}</p> : null}
+          </div>
+          <div>
+            <Input placeholder="Màu dây" value={formValues.wireColor} onChange={(event) => setFormValues((prev) => ({ ...prev, wireColor: event.target.value }))} />
+            {errors.wireColor ? <p className="mt-1 text-xs text-red-500">{errors.wireColor}</p> : null}
+          </div>
+          <div>
+            <Input placeholder="Màu vỏ" value={formValues.caseColor} onChange={(event) => setFormValues((prev) => ({ ...prev, caseColor: event.target.value }))} />
+            {errors.caseColor ? <p className="mt-1 text-xs text-red-500">{errors.caseColor}</p> : null}
+          </div>
+          <div>
+            <Input placeholder="Màu mặt" value={formValues.faceColor} onChange={(event) => setFormValues((prev) => ({ ...prev, faceColor: event.target.value }))} />
+            {errors.faceColor ? <p className="mt-1 text-xs text-red-500">{errors.faceColor}</p> : null}
+          </div>
         </div>
 
         {mode === "create" ? (

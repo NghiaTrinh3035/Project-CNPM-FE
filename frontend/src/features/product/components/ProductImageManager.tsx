@@ -7,6 +7,7 @@ import type { ProductImage } from "@/shared/types/domain";
 import { EmptyState } from "@/shared/components/states/EmptyState";
 import { ErrorState } from "@/shared/components/states/ErrorState";
 import { LoadingState } from "@/shared/components/states/LoadingState";
+import { ConfirmDialog } from "@/shared/components/common/ConfirmDialog";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -21,6 +22,7 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
   const [isPrimary, setIsPrimary] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
+  const [pendingDeleteImage, setPendingDeleteImage] = useState<ProductImage | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -43,14 +45,12 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
   };
 
   const handleDelete = async (image: ProductImage) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa ảnh này không?")) {
-      return;
-    }
     try {
       setActiveImageId(image.id);
       setActionError(null);
       await onDelete(image.id);
       toast.success("Đã xóa ảnh sản phẩm.");
+      setPendingDeleteImage(null);
     } catch (nextError) {
       setActionError(nextError instanceof Error ? nextError.message : "Không thể xóa ảnh sản phẩm.");
     } finally {
@@ -139,7 +139,7 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                       }}
                     />
                   </label>
-                  <Button size="icon" variant="danger" disabled={busy} onClick={() => void handleDelete(image)}>
+                  <Button size="icon" variant="danger" disabled={busy} onClick={() => setPendingDeleteImage(image)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -148,6 +148,24 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
           })}
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(pendingDeleteImage)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDeleteImage(null);
+          }
+        }}
+        title="Xác nhận xóa ảnh"
+        description="Bạn có chắc chắn muốn xóa ảnh sản phẩm này không?"
+        confirmText="Xóa ảnh"
+        loading={Boolean(pendingDeleteImage && activeImageId === pendingDeleteImage.id)}
+        onConfirm={() => {
+          if (pendingDeleteImage) {
+            void handleDelete(pendingDeleteImage);
+          }
+        }}
+      />
     </div>
   );
 };

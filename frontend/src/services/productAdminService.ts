@@ -20,6 +20,32 @@ export interface ProductAdminListResult {
   totalPages: number;
 }
 
+const normalizeProductErrorMessage = (message: string) => {
+  const text = message.trim();
+  const normalized = text.toLowerCase();
+
+  if (normalized.includes("product not found")) {
+    return "Không tìm thấy sản phẩm.";
+  }
+  if (normalized.includes("category not found")) {
+    return "Danh mục không tồn tại.";
+  }
+  if (normalized.includes("already exists in one of selected categories")) {
+    return "Sản phẩm đã tồn tại trong một danh mục đã chọn.";
+  }
+  if (normalized.includes("stock quantity cannot be negative")) {
+    return "Số lượng tồn kho không được âm.";
+  }
+  if (normalized.includes("price must be greater than 0")) {
+    return "Giá phải lớn hơn 0.";
+  }
+  if (normalized.includes("cannot delete product because it is referenced in order transactions")) {
+    return "Không thể xóa sản phẩm vì đang có giao dịch liên quan.";
+  }
+
+  return text;
+};
+
 const toApiErrorMessage = (error: unknown, fallback: string) => {
   if (!axios.isAxiosError(error)) {
     return fallback;
@@ -27,17 +53,17 @@ const toApiErrorMessage = (error: unknown, fallback: string) => {
 
   const data = error.response?.data;
   if (typeof data === "string" && data.trim()) {
-    return data;
+    return normalizeProductErrorMessage(data);
   }
 
   if (data && typeof data === "object") {
     const message = (data as Record<string, unknown>)["message"];
     if (typeof message === "string" && message.trim()) {
-      return message;
+      return normalizeProductErrorMessage(message);
     }
     const errorText = (data as Record<string, unknown>)["error"];
     if (typeof errorText === "string" && errorText.trim()) {
-      return errorText;
+      return normalizeProductErrorMessage(errorText);
     }
   }
 
@@ -159,15 +185,6 @@ export const productAdminService = {
       await productApi.deleteImage(productId, imageId);
     } catch (error) {
       throw new Error(toApiErrorMessage(error, "Không thể xóa ảnh sản phẩm."));
-    }
-  },
-
-  async setImageAvatar(productId: string, imageId: string): Promise<ProductImage> {
-    try {
-      const data = await productApi.setImageThumbnail(productId, imageId);
-      return mapProductImage(data as unknown as Record<string, unknown>);
-    } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Không thể cập nhật ảnh đại diện."));
     }
   },
 };

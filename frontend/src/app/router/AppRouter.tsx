@@ -40,6 +40,12 @@ const StaffWarrantyDetailPage = lazy(() =>
   import("@/features/staff/pages/StaffWarrantyDetailPage").then((m) => ({ default: m.StaffWarrantyDetailPage })),
 );
 const StaffProductsPage = lazy(() => import("@/features/staff/pages/StaffProductsPage").then((m) => ({ default: m.StaffProductsPage })));
+const StaffProductCreatePage = lazy(() =>
+  import("@/features/staff/pages/StaffProductCreatePage").then((m) => ({ default: m.StaffProductCreatePage })),
+);
+const StaffProductEditPage = lazy(() =>
+  import("@/features/staff/pages/StaffProductEditPage").then((m) => ({ default: m.StaffProductEditPage })),
+);
 const StaffProductDetailPage = lazy(() =>
   import("@/features/staff/pages/StaffProductDetailPage").then((m) => ({ default: m.StaffProductDetailPage })),
 );
@@ -58,6 +64,9 @@ const OwnerDashboardPage = lazy(() => import("@/features/owner/pages/OwnerDashbo
 const OwnerProductsPage = lazy(() => import("@/features/owner/pages/OwnerProductsPage").then((m) => ({ default: m.OwnerProductsPage })));
 const OwnerProductCreatePage = lazy(() =>
   import("@/features/owner/pages/OwnerProductCreatePage").then((m) => ({ default: m.OwnerProductCreatePage })),
+);
+const OwnerProductEditPage = lazy(() =>
+  import("@/features/owner/pages/OwnerProductEditPage").then((m) => ({ default: m.OwnerProductEditPage })),
 );
 const OwnerInventoryPage = lazy(() => import("@/features/owner/pages/OwnerInventoryPage").then((m) => ({ default: m.OwnerInventoryPage })));
 const OwnerSuppliersPage = lazy(() => import("@/features/owner/pages/OwnerSuppliersPage").then((m) => ({ default: m.OwnerSuppliersPage })));
@@ -139,6 +148,8 @@ export const AppRouter = () => (
           <Route path={ROUTES.staff.warranties} element={<StaffWarrantiesPage />} />
           <Route path={ROUTES.staff.warrantyDetail} element={<StaffWarrantyDetailPage />} />
           <Route path={ROUTES.staff.products} element={<StaffProductsPage />} />
+          <Route path={ROUTES.staff.productCreate} element={<StaffProductCreatePage />} />
+          <Route path={ROUTES.staff.productEdit} element={<StaffProductEditPage />} />
           <Route path={ROUTES.staff.productDetail} element={<StaffProductDetailPage />} />
           <Route path={ROUTES.staff.categories} element={<StaffCategoriesPage />} />
           <Route path={ROUTES.staff.customers} element={<StaffCustomersPage />} />
@@ -156,6 +167,7 @@ export const AppRouter = () => (
           <Route path={ROUTES.owner.dashboard} element={<OwnerDashboardPage />} />
           <Route path={ROUTES.owner.products} element={<OwnerProductsPage />} />
           <Route path={ROUTES.owner.productCreate} element={<OwnerProductCreatePage />} />
+          <Route path={ROUTES.owner.productEdit} element={<OwnerProductEditPage />} />
           <Route path={ROUTES.owner.productDetail} element={<OwnerProductDetailPage />} />
           <Route path={ROUTES.owner.categories} element={<OwnerCategoriesPage />} />
           <Route path={ROUTES.owner.inventory} element={<OwnerInventoryPage />} />
