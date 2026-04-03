@@ -22,8 +22,6 @@ export const productManageSchema = z.object({
   wireColor: optionalColorText,
   caseColor: optionalColorText,
   faceColor: optionalColorText,
-  color: optionalColorText,
-  size: optionalText100,
   status: z.enum(["ACTIVE", "OUT_OF_STOCK", "DISCONTINUED"]),
 });
 

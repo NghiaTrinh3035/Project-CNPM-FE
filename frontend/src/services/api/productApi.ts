@@ -50,8 +50,8 @@ export interface ProductCreateRequest {
   faceColor: string;
   wireColor: string;
   caseColor: string;
-  color: string;
-  size: string;
+  color?: string;
+  size?: string;
   specs: string;
 }
 
@@ -71,8 +71,8 @@ export interface ProductUpdateRequest {
   faceColor: string;
   wireColor: string;
   caseColor: string;
-  color: string;
-  size: string;
+  color?: string;
+  size?: string;
   specs: string;
   status: string;
 }

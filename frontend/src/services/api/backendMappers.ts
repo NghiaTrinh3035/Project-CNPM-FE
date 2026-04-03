@@ -128,7 +128,15 @@ type BackendProduct = {
   powerSource?: string;
   warranty?: string;
   waterResistance?: string;
+  wireMaterial?: string;
+  wireColor?: string;
+  caseColor?: string;
+  faceColor?: string;
+  color?: string;
+  size?: string;
+  specs?: string;
   strapMaterial?: string;
+  strapColor?: string;
   glassMaterial?: string;
   faceSize?: string;
   updatedAt?: string | number | Date;
@@ -330,10 +338,16 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
   const rating = toNumber(raw?.averageRating ?? raw?.rating, 0);
   const reviewCount = toNumber(raw?.reviewCount ?? raw?.reviews?.length, 0);
   const updatedAt = toIso(raw?.updatedAt ?? raw?.createdAt);
+  const wireMaterial = pickString(raw?.wireMaterial);
+  const wireColor = pickString(raw?.wireColor);
+  const caseColor = pickString(raw?.caseColor);
+  const faceColor = pickString(raw?.faceColor);
+  const strapMaterial = pickString(raw?.strapMaterial);
+  const strapColor = pickString(raw?.strapColor);
 
   return {
     id,
-    sku: pickString(raw?.partNumber, `SKU-${id.slice(0, 8).toUpperCase()}`),
+    sku: pickString(raw?.partNumber, id),
     name: pickString(raw?.name, "Unnamed Product"),
     brand: pickString(raw?.brand, "Unknown"),
     category,
@@ -346,7 +360,14 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
     glassMaterial: pickString(raw?.glassMaterial, "Sapphire Crystal"),
     waterResistance: pickString(raw?.waterResistance, "50m"),
     faceSize: pickString(raw?.faceSize, "40mm"),
-    strapMaterial: pickString(raw?.strapMaterial, "Steel"),
+    strapMaterial: strapMaterial || wireMaterial || "Steel",
+    strapColor: strapColor || wireColor,
+    wireMaterial: wireMaterial || strapMaterial,
+    wireColor: wireColor || strapColor,
+    caseColor,
+    faceColor,
+    color: pickString(raw?.color) || wireColor || caseColor || faceColor,
+    size: pickString(raw?.size) || pickString(raw?.faceSize),
     status: normalizeProductStatus(raw?.status),
     averageRating: rating,
     rating,
@@ -355,7 +376,7 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
     imageUrls: imagePool.map((item) => item.url),
     specs: [
       { label: "Movement", value: pickString(raw?.movementType ?? raw?.powerSource, "-") },
-      { label: "Warranty", value: pickString(raw?.warranty, "-") },
+      { label: "Warranty", value: pickString(raw?.warranty, "2 năm") },
       { label: "Water", value: pickString(raw?.waterResistance, "-") },
     ],
     tags: [pickString(raw?.brand), ...categories.map((item) => item.name)].filter(Boolean),
