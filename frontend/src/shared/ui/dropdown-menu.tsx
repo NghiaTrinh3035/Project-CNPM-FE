@@ -35,7 +35,7 @@ export const DropdownMenuSubContent = ({
 }: DropdownMenuPrimitive.DropdownMenuSubContentProps) => (
   <DropdownMenuPrimitive.SubContent
     className={cn(
-      "z-50 min-w-32 overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
+      "z-50 min-w-32 overflow-hidden rounded-md border border-border/80 bg-popover/95 p-1 text-popover-foreground shadow-md backdrop-blur-sm",
       className,
     )}
     {...props}
@@ -51,7 +51,7 @@ export const DropdownMenuContent = ({
     <DropdownMenuPrimitive.Content
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-40 overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
+        "z-50 min-w-40 overflow-hidden rounded-md border border-border/80 bg-popover/95 p-1 text-popover-foreground shadow-md backdrop-blur-sm",
         className,
       )}
       {...props}
