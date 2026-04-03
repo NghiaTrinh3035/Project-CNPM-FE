@@ -10,7 +10,6 @@ import {
 import { orderService } from "@/services/orderService";
 import { productService } from "@/services/productService";
 import { delay } from "@/services/mock/delay";
-import { toSlug } from "@/shared/utils/slug";
 import type { Product, RevenueReport, StaticPageContent, Supplier, User, Voucher } from "@/shared/types/domain";
 
 export interface OwnerOverview {
@@ -23,22 +22,25 @@ export interface OwnerOverview {
   bestSellerStats: Array<{ name: string; sold: number }>;
 }
 
-export interface CustomerUpsertPayload {
-  username: string;
-  password?: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-  gender: NonNullable<User["gender"]>;
-}
-
 export interface CustomerListParams {
   page?: number;
   pageSize?: number;
 }
 
 export interface CustomerListResult {
+  items: User[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface StaffListParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StaffListResult {
   items: User[];
   page: number;
   pageSize: number;
@@ -140,6 +142,24 @@ const toApiErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const toCustomerPage = (data: unknown, page: number, pageSize: number): CustomerListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
+const toStaffPage = (data: unknown, page: number, pageSize: number): StaffListResult => {
   const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
   const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
 
@@ -264,45 +284,11 @@ export const adminService = {
     }
   },
 
-  async createCustomer(payload: CustomerUpsertPayload): Promise<User> {
-    try {
-      const { data } = await axiosClient.post("/customers", {
-        username: payload.username,
-        password: payload.password ?? "Customer@123",
-        fullName: payload.fullName,
-        email: payload.email,
-        phone: payload.phone,
-        address: payload.address,
-        gender: payload.gender,
-      });
-      const mapped = mapBackendUser(data);
-      return { ...mapped, fullName: payload.fullName, role: "CUSTOMER" };
-    } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the tao khach hang."));
-    }
-  },
-
-  async updateCustomer(customerId: string, payload: Omit<CustomerUpsertPayload, "password">): Promise<User> {
-    try {
-      const { data } = await axiosClient.put(`/customers/${customerId}`, {
-        fullName: payload.fullName,
-        email: payload.email,
-        phone: payload.phone,
-        address: payload.address,
-        gender: payload.gender,
-      });
-      const mapped = mapBackendUser(data);
-      return { ...mapped, fullName: payload.fullName, role: "CUSTOMER" };
-    } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the cap nhat khach hang."));
-    }
-  },
-
   async removeCustomer(customerId: string) {
     try {
       await axiosClient.delete(`/customers/${customerId}`);
     } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the xoa khach hang."));
+      throw new Error(toApiErrorMessage(error, "Không thể xóa khách hàng."));
     }
   },
 
@@ -312,7 +298,7 @@ export const adminService = {
       const { data } = await axiosClient.patch(`/customers/${customerId}/${path}`);
       return mapBackendUser(data);
     } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the cap nhat trang thai khach hang."));
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật trạng thái khách hàng."));
     }
   },
 
@@ -321,22 +307,30 @@ export const adminService = {
       const { data } = await axiosClient.patch(`/customers/${customerId}/promote-to-staff`);
       return mapBackendUser(data);
     } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the nang quyen khach hang."));
+      throw new Error(toApiErrorMessage(error, "Không thể nâng quyền khách hàng."));
     }
   },
 
-  async listStaff(): Promise<User[]> {
+  async listStaff(params: StaffListParams = {}): Promise<StaffListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
     try {
-      const { data } = await axiosClient.get("/users/role/STAFF");
-      return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
+      const { data } = await axiosClient.get("/staff", { params: { page: page - 1, size: pageSize } });
+      return toStaffPage(data, page, pageSize);
     } catch {
-      return [];
+      return {
+        items: [],
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 0,
+      };
     }
   },
 
   async getStaffById(staffId: string): Promise<User | null> {
     try {
-      const { data } = await axiosClient.get(`/users/${staffId}`);
+      const { data } = await axiosClient.get(`/staff/${staffId}`);
       return mapBackendUser(data);
     } catch {
       return null;
@@ -349,46 +343,16 @@ export const adminService = {
       const { data } = await axiosClient.patch(`/users/${staffId}/${path}`);
       return mapBackendUser(data);
     } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the cap nhat trang thai nhan vien."));
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật trạng thái nhân viên."));
     }
   },
 
-  async saveStaff(staff: User): Promise<User> {
-    try {
-      const payload = {
-        username: staff.username || toSlug(staff.fullName || staff.email || "staff"),
-        password: "Staff@123",
-        email: staff.email,
-        phone: staff.phone,
-        address: staff.address ?? "",
-        gender: staff.gender ?? "OTHER",
-        role: "STAFF",
-      };
-      const isPersisted = Boolean(staff.id && !staff.id.startsWith("u-staff-"));
-      const { data } = isPersisted
-        ? await axiosClient.put(`/users/${staff.id}`, payload)
-        : await axiosClient.post("/users", payload);
-      const mapped = mapBackendUser(data);
-      return { ...mapped, fullName: staff.fullName || mapped.fullName };
-    } catch {
-      await delay(140);
-      const db = getDb();
-      const existing = db.staff.find((item) => item.id === staff.id);
-      if (existing) {
-        Object.assign(existing, staff);
-        return structuredClone(existing);
-      }
-      db.staff.unshift(staff);
-      db.users.push(staff);
-      return structuredClone(staff);
-    }
-  },
 
   async removeStaff(staffId: string) {
     try {
       await axiosClient.delete(`/users/${staffId}`);
     } catch (error) {
-      throw new Error(toApiErrorMessage(error, "Khong the xoa nhan vien."));
+      throw new Error(toApiErrorMessage(error, "Không thể xóa nhân viên."));
     }
   },
 

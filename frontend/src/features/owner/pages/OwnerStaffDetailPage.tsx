@@ -36,32 +36,32 @@ export const OwnerStaffDetailPage = () => {
       <CardHeader className="space-y-3">
         <Button variant="ghost" className="w-fit" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Quay lai
+          Quay lại
         </Button>
-        <CardTitle>Chi tiet nhan vien</CardTitle>
+        <CardTitle>Chi tiết nhân viên</CardTitle>
       </CardHeader>
       <CardContent>
         {!staffQuery.isLoading && !staff ? (
           <p className="text-sm text-muted-foreground">
-            Khong tim thay nhan vien. {" "}
+            Không tìm thấy nhân viên. {" "}
             <button className="underline" onClick={() => navigate(ROUTES.owner.staff)}>
-              Ve danh sach
+              Về danh sách
             </button>
           </p>
         ) : null}
 
         {staff ? (
           <div>
-            <DetailRow label="Ma nhan vien" value={staff.id} />
-            <DetailRow label="Tai khoan" value={staff.username || "--"} />
-            <DetailRow label="Ho va ten" value={staff.fullName || "--"} />
+            <DetailRow label="Mã nhân viên" value={staff.id} />
+            <DetailRow label="Tài khoản" value={staff.username || "--"} />
+            <DetailRow label="Họ và tên" value={staff.fullName || "--"} />
             <DetailRow label="Email" value={staff.email || "--"} />
-            <DetailRow label="So dien thoai" value={staff.phone || "--"} />
-            <DetailRow label="Dia chi" value={staff.address || "--"} />
-            <DetailRow label="Gioi tinh" value={staff.gender || "--"} />
-            <DetailRow label="Vai tro" value={staff.role} />
-            <DetailRow label="Trang thai" value={staff.isActive ? "ACTIVE" : "INACTIVE"} />
-            <DetailRow label="Ngay tao" value={toShortDate(staff.createdAt)} />
+            <DetailRow label="Số điện thoại" value={staff.phone || "--"} />
+            <DetailRow label="Địa chỉ" value={staff.address || "--"} />
+            <DetailRow label="Giới tính" value={staff.gender || "--"} />
+            <DetailRow label="Vai trò" value={staff.role} />
+            <DetailRow label="Trạng thái" value={staff.isActive ? "Đang hoạt động" : "Đã khóa"} />
+            <DetailRow label="Ngày tạo" value={toShortDate(staff.createdAt)} />
           </div>
         ) : null}
       </CardContent>

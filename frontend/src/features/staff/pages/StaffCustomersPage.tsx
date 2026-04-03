@@ -16,8 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const toGenderLabel = (gender?: User["gender"]) => {
   if (gender === "MALE") return "Nam";
-  if (gender === "FEMALE") return "Nu";
-  return "Khac";
+  if (gender === "FEMALE") return "Nữ";
+  return "Khác";
 };
 
 export const StaffCustomersPage = () => {
@@ -37,7 +37,7 @@ export const StaffCustomersPage = () => {
   const deleteMutation = useMutation({
 	mutationFn: adminService.removeCustomer,
 	onSuccess: () => {
-	  toast.success("Da xoa khach hang.");
+	  toast.success("Đã xóa khách hàng.");
 	  queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
 	  queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
 	  setDeleteTarget(null);
@@ -47,7 +47,7 @@ export const StaffCustomersPage = () => {
   const lockMutation = useMutation({
     mutationFn: adminService.setCustomerActiveStatus,
     onSuccess: (_, variables) => {
-      toast.success(variables.isActive ? "Da mo khoa khach hang." : "Da khoa khach hang.");
+	  toast.success(variables.isActive ? "Đã mở khóa khách hàng." : "Đã khóa khách hàng.");
       queryClient.invalidateQueries({ queryKey: ["staff-customers"] });
       queryClient.invalidateQueries({ queryKey: ["owner-customers"] });
       setLockTarget(null);
@@ -77,7 +77,7 @@ export const StaffCustomersPage = () => {
 	<>
 	  <Card>
 		<CardHeader className="space-y-3">
-		  <CardTitle>Khach hang (Staff)</CardTitle>
+		  <CardTitle>Quản lý khách hàng</CardTitle>
 		  <Input
 			value={keyword}
 			onChange={(event) => setKeyword(event.target.value)}
@@ -89,12 +89,12 @@ export const StaffCustomersPage = () => {
 			<TableHeader>
 			  <TableRow>
 				<TableHead>ID</TableHead>
-				<TableHead>Name</TableHead>
-				<TableHead>Phone</TableHead>
+				<TableHead>Tên</TableHead>
+				<TableHead>Số điện thoại</TableHead>
 				<TableHead>Email</TableHead>
-				<TableHead>Address</TableHead>
-				<TableHead>Gender</TableHead>
-				<TableHead className="text-right">Thao tac</TableHead>
+				<TableHead>Địa chỉ</TableHead>
+				<TableHead>Giới tính</TableHead>
+				<TableHead className="text-right">Thao tác</TableHead>
 			  </TableRow>
 			</TableHeader>
 			<TableBody>
@@ -118,11 +118,11 @@ export const StaffCustomersPage = () => {
 					  </Button>
 					  <Button variant="outline" size="sm" onClick={() => setLockTarget(customer)}>
 						{customer.isActive ? <Lock className="mr-1 h-4 w-4" /> : <LockOpen className="mr-1 h-4 w-4" />}
-						{customer.isActive ? "Lock" : "Unlock"}
+						{customer.isActive ? "Khóa" : "Mở khóa"}
 					  </Button>
 					  <Button variant="danger" size="sm" onClick={() => setDeleteTarget(customer)}>
 						<Trash2 className="mr-1 h-4 w-4" />
-						Delete
+						Xóa
 					  </Button>
 					</div>
 				  </TableCell>
@@ -133,7 +133,7 @@ export const StaffCustomersPage = () => {
 
 		  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
 			<div className="text-sm text-muted-foreground">
-			  Trang {page} / {Math.max(totalPages, 1)} - Tong {totalItems} khach hang
+			  Trang {page} / {Math.max(totalPages, 1)} - Tổng {totalItems} khách hàng
 			</div>
 			<div className="flex items-center gap-2">
 			  <Select
@@ -144,19 +144,19 @@ export const StaffCustomersPage = () => {
 				  setPage(1);
 				}}
 			  >
-				<option value="10">10 / page</option>
-				<option value="20">20 / page</option>
-				<option value="50">50 / page</option>
+				<option value="10">10 / trang</option>
+				<option value="20">20 / trang</option>
+				<option value="50">50 / trang</option>
 			  </Select>
 			  <Button variant="outline" disabled={page <= 1 || customersQuery.isFetching} onClick={() => setPage((prev) => prev - 1)}>
-				Prev
+				Trước
 			  </Button>
 			  <Button
 				variant="outline"
 				disabled={page >= Math.max(totalPages, 1) || customersQuery.isFetching}
 				onClick={() => setPage((prev) => prev + 1)}
 			  >
-				Next
+				Sau
 			  </Button>
 			</div>
 		  </div>
@@ -173,16 +173,16 @@ export const StaffCustomersPage = () => {
 	  >
 		<DialogContent>
 		  <DialogHeader>
-			<DialogTitle>{lockTarget?.isActive ? "Xac nhan khoa tai khoan" : "Xac nhan mo khoa tai khoan"}</DialogTitle>
+			<DialogTitle>{lockTarget?.isActive ? "Xác nhận khóa tài khoản" : "Xác nhận mở khóa tài khoản"}</DialogTitle>
 			<DialogDescription>
 			  {lockTarget?.isActive
-				? `Ban co chac chan muon khoa tai khoan ${lockTarget?.fullName || "nay"} khong?`
-				: `Ban co chac chan muon mo khoa tai khoan ${lockTarget?.fullName || "nay"} khong?`}
+				? `Bạn có chắc chắn muốn khóa tài khoản ${lockTarget?.fullName || "này"} không?`
+				: `Bạn có chắc chắn muốn mở khóa tài khoản ${lockTarget?.fullName || "này"} không?`}
 			</DialogDescription>
 		  </DialogHeader>
 		  <div className="flex justify-end gap-2">
 			<Button variant="outline" onClick={() => setLockTarget(null)}>
-			  Huy
+			  Hủy
 			</Button>
 			<Button
 			  variant="outline"
@@ -194,7 +194,7 @@ export const StaffCustomersPage = () => {
 				lockMutation.mutate({ customerId: lockTarget.id, isActive: !lockTarget.isActive });
 			  }}
 			>
-			  {lockMutation.isPending ? "Dang xu ly..." : lockTarget?.isActive ? "Khoa" : "Mo khoa"}
+			  {lockMutation.isPending ? "Đang xử lý..." : lockTarget?.isActive ? "Khóa" : "Mở khóa"}
 			</Button>
 		  </div>
 		</DialogContent>
@@ -210,14 +210,14 @@ export const StaffCustomersPage = () => {
 	  >
 		<DialogContent>
 		  <DialogHeader>
-			<DialogTitle>Xac nhan xoa khach hang</DialogTitle>
+			<DialogTitle>Xác nhận xóa khách hàng</DialogTitle>
 			<DialogDescription>
-			  Ban co chac chan muon xoa khach hang {deleteTarget?.fullName || "này"} khong?
+			  Bạn có chắc chắn muốn xóa khách hàng {deleteTarget?.fullName || "này"} không?
 			</DialogDescription>
 		  </DialogHeader>
 		  <div className="flex justify-end gap-2">
 			<Button variant="outline" onClick={() => setDeleteTarget(null)}>
-			  Huy
+			  Hủy
 			</Button>
 			<Button
 			  variant="danger"
@@ -228,7 +228,7 @@ export const StaffCustomersPage = () => {
 				}
 			  }}
 			>
-			  {deleteMutation.isPending ? "Dang xoa..." : "Xoa"}
+			  {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
 			</Button>
 		  </div>
 		</DialogContent>
