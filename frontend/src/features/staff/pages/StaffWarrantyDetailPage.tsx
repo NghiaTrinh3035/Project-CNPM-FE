@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { warrantyService } from "@/services/warrantyService";
+import { adminService } from "@/services/adminService";
 import { WARRANTY_STATUS_LABEL } from "@/shared/constants/labels";
 import { ROUTES } from "@/shared/constants/routes";
 import { toShortDate } from "@/shared/lib/format";
@@ -23,7 +23,7 @@ export const StaffWarrantyDetailPage = () => {
 
   const query = useQuery({
 	queryKey: ["staff-warranty-detail", id],
-	queryFn: () => (id ? warrantyService.getById(id) : Promise.resolve(null)),
+	queryFn: () => (id ? adminService.getWarrantyById(id) : Promise.resolve(null)),
 	enabled: Boolean(id),
   });
 
@@ -50,13 +50,15 @@ export const StaffWarrantyDetailPage = () => {
 			  <Badge variant={warranty.status === "REJECTED" ? "danger" : "outline"}>{WARRANTY_STATUS_LABEL[warranty.status]}</Badge>
 			</div>
 			<DetailRow label="Mã bảo hành" value={warranty.id} />
-			<DetailRow label="Đơn hàng" value={warranty.orderId} />
-			<DetailRow label="Dòng sản phẩm" value={warranty.productId} />
-			<DetailRow label="Khách hàng" value={warranty.userId} />
-			<DetailRow label="Mô tả lỗi" value={warranty.description || "--"} />
+			<DetailRow label="Tên khách hàng" value={warranty.customerName || "--"} />
+			<DetailRow label="Số điện thoại khách hàng" value={warranty.customerPhone || "--"} />
+			<DetailRow label="Sản phẩm" value={warranty.productName || warranty.productId || "--"} />
+			<DetailRow label="Số lượng" value={String(warranty.quantity)} />
+			<DetailRow label="Ngày nhận" value={toShortDate(warranty.receivedDate)} />
+			<DetailRow label="Ngày dự kiến trả" value={toShortDate(warranty.expectedReturnDate)} />
+			<DetailRow label="Mô tả vấn đề" value={warranty.issueDescription || "--"} />
 			<DetailRow label="Ghi chú kỹ thuật" value={warranty.technicianNote || "--"} />
-			<DetailRow label="Ngày tạo" value={toShortDate(warranty.createdAt)} />
-			<DetailRow label="Cập nhật gần nhất" value={toShortDate(warranty.updatedAt)} />
+			<DetailRow label="Lý do từ chối" value={warranty.rejectReason || "--"} />
 		  </div>
 		) : null}
 	  </CardContent>
