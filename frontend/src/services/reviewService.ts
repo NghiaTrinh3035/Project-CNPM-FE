@@ -1,48 +1,47 @@
-import axiosClient from "@/api/axiosClient";
+import { reviewApi } from "@/services/api/reviewApi";
 import { getDb } from "@/mocks/data/database";
-import { mapBackendReview, unwrapPage } from "@/services/api/backendMappers";
+import { mapBackendReview } from "@/services/api/backendMappers";
 import { delay } from "@/services/mock/delay";
 import type { Review } from "@/shared/types/domain";
 
-export interface ReviewInput {
-  userId: string;
+export interface ReviewRequest {
+  customerId: string;
   productId: string;
-  orderId: string;
   rating: number;
-  content: string;
+  comment: string;
 }
+
 
 export const reviewService = {
   async listByProduct(productId: string): Promise<Review[]> {
     try {
-      const { data } = await axiosClient.get(`/reviews/product/${productId}`);
-      return unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendReview(item));
+      const reviews = await reviewApi.listByProduct(productId);
+      return reviews.map((review) => mapBackendReview(review));
     } catch {
       await delay(120);
       return getDb().reviews.filter((item) => item.productId === productId);
     }
   },
 
-  async create(input: ReviewInput) {
+  async create(input: ReviewRequest) {
     try {
       const payload = {
-        customerId: input.userId,
+        customerId: input.customerId,
         productId: input.productId,
         rating: input.rating,
-        comment: input.content,
+        comment: input.comment,
       };
-      const { data } = await axiosClient.post("/reviews", payload);
+      const data = await reviewApi.createReview(payload);
       return mapBackendReview(data);
     } catch {
       await delay(180);
       const db = getDb();
       const review: Review = {
-        id: `r-${Date.now()}`,
-        userId: input.userId,
+        id: `review-${Date.now()}`,
+        customerId: input.customerId,
         productId: input.productId,
-        orderId: input.orderId,
         rating: input.rating,
-        content: input.content,
+        comment: input.comment,
         createdAt: new Date().toISOString(),
       };
       db.reviews.unshift(review);

@@ -233,6 +233,7 @@ type BackendVoucher = {
   quantity?: number;
   usageCount?: number;
   isUsed?: boolean;
+  isActive?: boolean;
   minOrderAmount?: number;
   validFrom?: string | number | Date;
   validTo?: string | number | Date;
@@ -496,11 +497,10 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
 
 export const mapBackendReview = (raw: BackendReview | null | undefined): Review => ({
   id: pickString(raw?.id, `r-${Date.now()}`),
-  userId: pickString(raw?.customerId ?? raw?.customer?.id),
+  customerId: pickString(raw?.customerId ?? raw?.customer?.id),
   productId: pickString(raw?.productId ?? raw?.product?.id),
-  orderId: "",
   rating: toNumber(raw?.rating, 5),
-  content: pickString(raw?.comment ?? raw?.content),
+  comment: pickString(raw?.comment ?? raw?.content),
   createdAt: toIso(raw?.createdAt),
 });
 
@@ -524,11 +524,14 @@ export const mapBackendVoucher = (raw: BackendVoucher | null | undefined): Vouch
     usedCount,
     quantity,
     status,
+    isActive: Boolean(raw?.isActive),
     createdAt: toIso(raw?.createdAt ?? raw?.validFrom),
     validFrom,
     validTo,
   };
 };
+
+
 
 const normalizeNotificationType = (value: unknown): NotificationType => {
   const normalized = pickString(value).toUpperCase() as NotificationType;

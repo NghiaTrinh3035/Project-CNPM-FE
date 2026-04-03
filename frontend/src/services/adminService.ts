@@ -2,12 +2,11 @@ import axios from "axios";
 import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
 import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
-import { mapBackendProduct, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
+import { mapBackendProduct, mapBackendUser, mapBackendVoucher, unwrapPage, mapBackendSupplier} from "@/services/api/backendMappers";
 import { orderService } from "@/services/orderService";
 import { productService } from "@/services/productService";
 import { delay } from "@/services/mock/delay";
-import { toSlug } from "@/shared/utils/slug";
-import type { Product, ProductStatus, RevenueReport, StaticPageContent, Supplier, User, Voucher } from "@/shared/types/domain";
+import type { Product, ProductStatus, RevenueReport, StaticPageContent, Supplier, User, Voucher, VoucherStatus, VoucherCreatePayload, VoucherUpdatePayload } from "@/shared/types/domain";
 
 export interface OwnerOverview {
   revenue: number;

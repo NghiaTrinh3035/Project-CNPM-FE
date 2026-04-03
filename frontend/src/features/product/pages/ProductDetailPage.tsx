@@ -26,9 +26,10 @@ import { Input } from "@/shared/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Textarea } from "@/shared/ui/textarea";
 
+
 const reviewSchema = z.object({
   rating: z.number().min(1).max(5),
-  content: z.string().min(10, "Vui lòng nhập tối thiểu 10 ký tự."),
+  comment: z.string().min(10, "Vui lòng nhập tối thiểu 10 ký tự."),
 });
 
 const discussionSchema = z.object({
@@ -94,8 +95,8 @@ export const ProductDetailPage = () => {
   const reviewForm = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
-      rating: 5,
-      content: "",
+      rating: 0,
+      comment: "",
     },
   });
 
@@ -105,15 +106,14 @@ export const ProductDetailPage = () => {
         return Promise.reject(new Error("UNAUTH"));
       }
       return reviewService.create({
-        userId: user.id,
+        customerId: user.id,
         productId: productQuery.data.id,
-        orderId: "manual-mock",
         ...values,
       });
     },
     onSuccess: () => {
       toast.success("Cảm ơn bạn đã gửi đánh giá.");
-      reviewForm.reset({ rating: 5, content: "" });
+      reviewForm.reset({ rating: 0, comment: "" });
       queryClient.invalidateQueries({ queryKey: ["reviews", productQuery.data?.id] });
     },
     onError: (error) => {
@@ -331,9 +331,9 @@ export const ProductDetailPage = () => {
               >
                 <p className="font-medium">Gửi đánh giá của bạn</p>
                 <Input type="number" min={1} max={5} {...reviewForm.register("rating", { valueAsNumber: true })} />
-                <Textarea placeholder="Trải nghiệm của bạn..." {...reviewForm.register("content")} />
-                {reviewForm.formState.errors.content ? (
-                  <p className="text-xs text-red-500">{reviewForm.formState.errors.content.message}</p>
+                <Textarea placeholder="Trải nghiệm của bạn..." {...reviewForm.register("comment")} />
+                {reviewForm.formState.errors.comment ? (
+                  <p className="text-xs text-red-500">{reviewForm.formState.errors.comment.message}</p>
                 ) : null}
                 <Button type="submit">Gửi đánh giá</Button>
               </form>
@@ -341,7 +341,7 @@ export const ProductDetailPage = () => {
                 {reviewsQuery.data?.map((review) => (
                   <div key={review.id} className="rounded-xl border border-border/60 p-4">
                     <p className="text-sm font-medium">Đánh giá {review.rating}/5</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{review.content}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{review.comment}</p>
                     <p className="mt-2 text-xs text-muted-foreground">{toShortDate(review.createdAt)}</p>
                   </div>
                 ))}

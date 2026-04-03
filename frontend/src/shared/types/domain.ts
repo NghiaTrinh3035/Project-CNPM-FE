@@ -199,6 +199,7 @@ export interface Voucher {
   usedCount: number;
   quantity: number;
   status: VoucherStatus;
+  isActive: boolean;
   createdAt: string;
   validFrom: string;
   validTo: string;
@@ -211,17 +212,17 @@ export interface VoucherCreatePayload {
   validTo: string;
   quantity: number;
   status?: VoucherStatus;
+  isActive?: boolean;
 }
 
 export type VoucherUpdatePayload = VoucherCreatePayload;
 
 export interface Review {
   id: string;
-  userId: string;
+  customerId: string;
   productId: string;
-  orderId: string;
   rating: number;
-  content: string;
+  comment: string;
   createdAt: string;
 }
 
