@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Circle, Clock, Truck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -13,8 +13,8 @@ import { LoadingState } from "@/shared/components/states/LoadingState";
 import { ORDER_STATUS_LABEL } from "@/shared/constants/labels";
 import { ROUTES } from "@/shared/constants/routes";
 import { useSession } from "@/shared/hooks/useSession";
-import type { OrderStatus } from "@/shared/types/domain";
 import { toCurrency, toShortDate } from "@/shared/lib/format";
+import type { OrderStatus } from "@/shared/types/domain";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -61,7 +61,9 @@ export const OrderDetailPage = () => {
 
   const requestCancelMutation = useMutation({
     mutationFn: (input: CancelOrderInput) =>
-      id && user ? orderService.requestCancel(id, user.id, input) : Promise.reject(new Error("Không thể gửi yêu cầu hủy.")),
+      id && user
+        ? orderService.requestCancel(id, user.id, input)
+        : Promise.reject(new Error("Không thể gửi yêu cầu hủy.")),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", id] });
       queryClient.invalidateQueries({ queryKey: ["orders", user?.id] });
@@ -77,8 +79,7 @@ export const OrderDetailPage = () => {
     if (!order) {
       return -1;
     }
-    const index = TRACKING_STEPS.indexOf(order.status);
-    return index;
+    return TRACKING_STEPS.indexOf(order.status);
   }, [order]);
 
   const handleConfirmCancellation = (input: CancelOrderInput) => {
@@ -106,6 +107,8 @@ export const OrderDetailPage = () => {
     return <EmptyState title="Không tìm thấy đơn hàng" description="Vui lòng kiểm tra lại mã đơn hàng." />;
   }
 
+  const canReviewOrWarranty = ["DELIVERED", "COMPLETED"].includes(order.status);
+
   return (
     <>
       <div className="space-y-6">
@@ -123,7 +126,7 @@ export const OrderDetailPage = () => {
 
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/60 p-3">
+                <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 p-3">
                   <div className="flex items-center gap-3">
                     <img src={item.productImage} alt={item.productName} className="h-16 w-16 rounded-lg object-cover" />
                     <div>
@@ -131,57 +134,20 @@ export const OrderDetailPage = () => {
                       <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                     </div>
                   </div>
-                  <p className="font-medium">{toCurrency(item.unitPrice * item.quantity)}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="font-medium">{toCurrency(item.unitPrice * item.quantity)}</p>
-                  {[
-                    "DELIVERED",
-                    "COMPLETED",
-                  ].includes(order.status) ? (
-                    <Button variant="outline" asChild>
-                      <Link to={`/warranty/new?orderId=${order.id}&orderItemId=${item.id}`}>Tạo bảo hành</Link>
-                    </Button>
-                  ) : null}}
-                </div>
-              </div>
-            ))}
-          </div>
-          {order.status === "PENDING" ? (
-            <Button variant="danger" onClick={() => cancelMutation.mutate()}>
-              Hủy đơn hàng
-            </Button>
-          ) : null}
-          {["DELIVERED", "COMPLETED"].includes(order.status) ? (
-            <Button variant="outline" asChild>
-              <Link to="/shop">Viết đánh giá sản phẩm</Link>
-            </Button>
-          ) : null}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Timeline trạng thái</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {order.timeline.map((event, index) => (
-            <div key={`${event.status}-${event.at}`} className="flex gap-3">
-              <div className="pt-0.5">
-                {index === order.timeline.length - 1 ? (
-                  <CheckCircle2 className="h-4 w-4 text-luxury-gold" />
-                ) : (
-                  <Circle className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">{ORDER_STATUS_LABEL[event.status]}</p>
-                <p className="text-xs text-muted-foreground">{toShortDate(event.at)}</p>
-                {event.note ? <p className="text-xs text-muted-foreground">{event.note}</p> : null}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{toCurrency(item.unitPrice * item.quantity)}</p>
+                    {canReviewOrWarranty ? (
+                      <Button variant="outline" asChild>
+                        <Link to={`/warranty/new?orderId=${order.id}&orderItemId=${item.id}`}>Tạo bảo hành</Link>
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {order.refundRequired ? (
+            {order.status === "CANCELLED" && order.refundRequired ? (
               <p className="rounded-lg border border-border/60 bg-accent/40 p-3 text-sm text-muted-foreground">
                 {order.refundMessage ?? "Hoàn tiền sẽ được xử lý trong 3-7 ngày làm việc."}
               </p>
@@ -204,12 +170,36 @@ export const OrderDetailPage = () => {
                   Gửi yêu cầu hủy
                 </Button>
               ) : null}
-              {["DELIVERED", "COMPLETED"].includes(order.status) ? (
+              {canReviewOrWarranty ? (
                 <Button variant="outline" asChild>
                   <Link to={ROUTES.shop}>Viết đánh giá sản phẩm</Link>
                 </Button>
               ) : null}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Timeline trạng thái</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {order.timeline.map((event, index) => (
+              <div key={`${event.status}-${event.at}-${index}`} className="flex gap-3">
+                <div className="pt-0.5">
+                  {index === order.timeline.length - 1 ? (
+                    <CheckCircle2 className="h-4 w-4 text-luxury-gold" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">{ORDER_STATUS_LABEL[event.status]}</p>
+                  <p className="text-xs text-muted-foreground">{toShortDate(event.at)}</p>
+                  {event.note ? <p className="text-xs text-muted-foreground">{event.note}</p> : null}
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -239,25 +229,6 @@ export const OrderDetailPage = () => {
                 Đơn hàng đã được hủy.
               </p>
             )}
-
-            <div className="space-y-3">
-              {order.timeline.map((event, index) => (
-                <div key={`${event.status}-${event.at}-${index}`} className="flex gap-3">
-                  <div className="pt-0.5">
-                    {index === order.timeline.length - 1 ? (
-                      <CheckCircle2 className="h-4 w-4 text-luxury-gold" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-medium">{ORDER_STATUS_LABEL[event.status]}</p>
-                    <p className="text-xs text-muted-foreground">{toShortDate(event.at)}</p>
-                    {event.note ? <p className="text-xs text-muted-foreground">{event.note}</p> : null}
-                  </div>
-                </div>
-              ))}
-            </div>
 
             {order.shipping.trackingCode ? (
               <div className="rounded-lg border border-border/60 p-3 text-sm text-muted-foreground">

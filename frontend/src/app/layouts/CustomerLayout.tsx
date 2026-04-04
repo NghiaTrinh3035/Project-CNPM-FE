@@ -1,4 +1,4 @@
-import { Bell, ShieldCheck, ShoppingBag, UserCircle2, Wallet } from "lucide-react";
+﻿import { Bell, ShieldCheck, ShoppingBag, UserCircle2, Wallet } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { ROUTES } from "@/shared/constants/routes";

@@ -1,28 +1,19 @@
+﻿import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Scale, Search, ShoppingBag, UserCircle2, X } from "lucide-react";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
-import { ThemeToggle } from "@/shared/components/common/ThemeToggle";
-import { NotificationDropdown } from "@/shared/components/common/NotificationDropdown";
-import { Logo } from "@/shared/components/layout/Logo";
-import { ROUTES } from "@/shared/constants/routes";
 import { cartService } from "@/services/cartService";
+import { NotificationDropdown } from "@/shared/components/common/NotificationDropdown";
+import { ThemeToggle } from "@/shared/components/common/ThemeToggle";
+import { Logo } from "@/shared/components/layout/Logo";
+import { UserAccountMenu } from "@/shared/components/layout/UserAccountMenu";
+import { ROUTES } from "@/shared/constants/routes";
 import { useCompareStore } from "@/shared/hooks/useCompareStore";
 import { useSession } from "@/shared/hooks/useSession";
 import { cn } from "@/shared/lib/cn";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 import { Input } from "@/shared/ui/input";
 
 const mainNav = [
@@ -53,6 +44,7 @@ export const AppHeader = () => {
     event.preventDefault();
     navigate(`${ROUTES.search}?keyword=${encodeURIComponent(keyword)}`);
   };
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
@@ -116,46 +108,15 @@ export const AppHeader = () => {
           {isAuthenticated ? <NotificationDropdown /> : null}
 
           {isAuthenticated && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar>
-                    <AvatarImage src={user.avatar} alt={user.fullName ?? ""} />
-                    <AvatarFallback>{(user.fullName ?? "").slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>
-                  <p className="font-medium">{user.fullName ?? ""}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-                  <Badge className="mt-1 w-fit" variant="outline">
-                    {user.role}
-                  </Badge>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {isStaffOrOwner ? (
-                  <DropdownMenuItem asChild>
-                    <Link to={adminRoute}>Trang quản trị</Link>
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem asChild>
-                  <Link to={ROUTES.customer.profile}>Tài khoản</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to={ROUTES.customer.orders}>Đơn hàng</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={() => {
-                    logout();
-                    navigate(ROUTES.home);
-                  }}
-                >
-                  Đăng xuất
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserAccountMenu
+              user={user}
+              showAdminLink={isStaffOrOwner}
+              adminRoute={adminRoute}
+              onLogout={() => {
+                logout();
+                navigate(ROUTES.home);
+              }}
+            />
           ) : (
             <Button variant="outline" className="hidden sm:inline-flex" asChild>
               <Link to={ROUTES.auth.login}>
@@ -187,11 +148,7 @@ export const AppHeader = () => {
           >
             <div className="space-y-2 px-4 py-4">
               <form onSubmit={handleSearch} className="flex items-center gap-2">
-                <Input
-                  value={keyword}
-                  onChange={(event) => setKeyword(event.target.value)}
-                  placeholder="Tìm kiếm đồng hồ..."
-                />
+                <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm kiếm đồng hồ..." />
                 <Button type="submit" variant="outline" size="icon">
                   <Search className="h-4 w-4" />
                 </Button>
