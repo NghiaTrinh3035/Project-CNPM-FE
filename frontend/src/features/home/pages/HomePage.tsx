@@ -14,6 +14,7 @@ import { productService } from "@/services/productService";
 import { LoginPromptDialog } from "@/shared/components/common/LoginPromptDialog";
 import { SectionHeading } from "@/shared/components/common/SectionHeading";
 import { ROUTES } from "@/shared/constants/routes";
+import { useAverageRatings } from "@/shared/hooks/useAverageRatings";
 import { useCompareStore } from "@/shared/hooks/useCompareStore";
 import { useSession } from "@/shared/hooks/useSession";
 import { Button } from "@/shared/ui/button";
@@ -53,6 +54,31 @@ export const HomePage = () => {
     queryKey: ["home", "new"],
     queryFn: () => productService.getNewArrivals(),
   });
+
+  const homeProductIds = [
+    ...(featuredQuery.data ?? []),
+    ...(bestSellerQuery.data ?? []),
+    ...(newArrivalsQuery.data ?? []),
+  ].map((product) => product.id);
+
+  const averageRatingsQuery = useAverageRatings(homeProductIds);
+
+  const applyAverageRating = <T extends { id: string; averageRating?: number; rating?: number }>(product: T) => {
+    const averageRating = averageRatingsQuery.data?.[product.id];
+    if (averageRating === undefined) {
+      return product;
+    }
+
+    return {
+      ...product,
+      averageRating,
+      rating: averageRating,
+    };
+  };
+
+  const featuredProducts = (featuredQuery.data ?? []).map(applyAverageRating);
+  const bestSellerProducts = (bestSellerQuery.data ?? []).map(applyAverageRating);
+  const newArrivalProducts = (newArrivalsQuery.data ?? []).map(applyAverageRating);
 
   const addCartMutation = useMutation({
     mutationFn: (productId: string) => {
@@ -95,7 +121,7 @@ export const HomePage = () => {
           <ProductGridSkeleton />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredQuery.data?.map((product) => (
+            {featuredProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -120,7 +146,7 @@ export const HomePage = () => {
           <ProductGridSkeleton count={4} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {bestSellerQuery.data?.map((product) => (
+            {bestSellerProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -143,7 +169,7 @@ export const HomePage = () => {
             <ProductGridSkeleton count={4} />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {newArrivalsQuery.data?.map((product) => (
+              {newArrivalProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}

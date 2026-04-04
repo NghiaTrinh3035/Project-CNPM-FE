@@ -16,6 +16,7 @@ import { LoginPromptDialog } from "@/shared/components/common/LoginPromptDialog"
 import { EmptyState } from "@/shared/components/states/EmptyState";
 import { ErrorState } from "@/shared/components/states/ErrorState";
 import { LoadingState } from "@/shared/components/states/LoadingState";
+import { useAverageRatings } from "@/shared/hooks/useAverageRatings";
 import { toCurrency, toShortDate } from "@/shared/lib/format";
 import { useCompareStore } from "@/shared/hooks/useCompareStore";
 import { useSession } from "@/shared/hooks/useSession";
@@ -35,6 +36,7 @@ const reviewSchema = z.object({
 const discussionSchema = z.object({
   content: z.string().min(4, "Nội dung quá ngắn."),
 });
+
 
 type ReviewFormValues = z.infer<typeof reviewSchema>;
 type DiscussionFormValues = z.infer<typeof discussionSchema>;
@@ -124,6 +126,9 @@ export const ProductDetailPage = () => {
     enabled: Boolean(productQuery.data?.relatedProducts?.length ?? 0),
   });
 
+  const averageRatingsQuery = useAverageRatings(productQuery.data?.id ? [productQuery.data.id] : []);
+  const relatedAverageRatingsQuery = useAverageRatings(relatedQuery.data?.map((item) => item.id) ?? []);
+
   const addCartMutation = useMutation({
     mutationFn: () => {
       if (!user || !productQuery.data) {
@@ -206,6 +211,42 @@ export const ProductDetailPage = () => {
   const product = productQuery.data;
 
   const activeImage = useMemo(() => product?.images[activeImageIndex], [product, activeImageIndex]);
+  const displayRating = product
+    ? averageRatingsQuery.data?.[product.id] ?? product.averageRating ?? product.rating ?? 0
+    : 0;
+  const displayReviewCount = reviewsQuery.data?.length ?? product?.reviewCount ?? 0;
+  const detailSpecs = useMemo(() => {
+    if (!product) {
+      return [] as Array<{ label: string; value: string }>;
+    }
+
+    return [
+      ...(product.specs ?? []),
+      {
+        label: "Danh mục",
+        value: (product.categories?.map((category) => category.name).filter(Boolean).join(", ") || product.category?.name || "-") as string,
+      },
+      { label: "Kích thước mặt", value: product.faceSize ?? "-" },
+      { label: "Chất liệu dây", value: product.strapMaterial ?? product.wireMaterial ?? "-" },
+      { label: "Màu dây", value: product.strapColor ?? product.wireColor ?? "-" },
+      { label: "Màu vỏ", value: product.caseColor ?? "-" },
+      { label: "Màu mặt", value: product.faceColor ?? "-" },
+      { label: "Màu sắc", value: product.color ?? "-" },
+      { label: "Size", value: product.size ?? "-" },
+    ];
+  }, [product]);
+  const relatedProducts = (relatedQuery.data ?? []).map((item) => {
+    const relatedRating = relatedAverageRatingsQuery.data?.[item.id];
+    if (relatedRating === undefined) {
+      return item;
+    }
+
+    return {
+      ...item,
+      averageRating: relatedRating,
+      rating: relatedRating,
+    };
+  });
 
   if (productQuery.isLoading) {
     return <LoadingState text="Đang tải chi tiết sản phẩm..." />;
@@ -265,7 +306,7 @@ export const ProductDetailPage = () => {
           <div className="flex items-center gap-2">
             <Star className="h-4 w-4 fill-luxury-gold text-luxury-gold" />
             <p className="text-sm">
-              {product.rating} ({product.reviewCount} đánh giá)
+              {displayRating > 0 ? `${displayRating.toFixed(1)} (${displayReviewCount} đánh giá)` : "Chưa có đánh giá"}
             </p>
           </div>
 
@@ -359,8 +400,8 @@ export const ProductDetailPage = () => {
 
         <TabsContent value="specs">
           <Card>
-            <CardContent className="grid gap-3 p-6 sm:grid-cols-2">
-              {(product.specs ?? []).map((spec) => (
+            <CardContent className="grid gap-3 p-6 sm:grid-cols-2 lg:grid-cols-3">
+              {detailSpecs.map((spec) => (
                 <div key={spec.label} className="rounded-lg border border-border/60 p-3">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{spec.label}</p>
                   <p className="mt-1 font-medium">{spec.value}</p>
@@ -472,11 +513,11 @@ export const ProductDetailPage = () => {
         </TabsContent>
       </Tabs>
 
-      {relatedQuery.data && relatedQuery.data.length > 0 ? (
+      {relatedProducts.length > 0 ? (
         <section className="space-y-5">
           <h2 className="font-display text-2xl">Sản phẩm tương tự</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {relatedQuery.data.map((item) => (
+            {relatedProducts.map((item) => (
               <ProductCard key={item.id} product={item} onAddToCart={() => addCartMutation.mutate()} onCompare={compareAdd} />
             ))}
           </div>

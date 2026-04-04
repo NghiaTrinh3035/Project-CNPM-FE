@@ -48,19 +48,6 @@ export const AppFooter = () => (
           </li>
         </ul>
       </div>
-
-      <div className="space-y-4">
-        <h4 className="font-semibold">Nhận ưu đãi mới</h4>
-        <p className="text-sm text-muted-foreground">
-          Đăng ký newsletter để nhận thông tin bộ sưu tập mới và ưu đãi riêng.
-        </p>
-        <form className="space-y-2">
-          <Input type="email" placeholder="Email của bạn" />
-          <Button className="w-full" variant="luxury">
-            Đăng ký
-          </Button>
-        </form>
-      </div>
     </div>
 
     <div className="border-t border-border/60">
