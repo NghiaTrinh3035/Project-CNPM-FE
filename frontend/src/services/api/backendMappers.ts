@@ -219,6 +219,12 @@ type BackendOrder = {
     estimatedDelivery?: string | number | Date;
     carrierPhone?: string;
   };
+  canCancel?: boolean;
+  canRequestCancel?: boolean;
+  refundRequired?: boolean;
+  refundMessage?: string;
+  cancellationReason?: string;
+  cancellationNote?: string;
   orderItems?: BackendOrderItem[];
   items?: BackendOrderItem[];
   timeline?: BackendOrderStatusHistory[];
@@ -522,6 +528,12 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
       estimatedDelivery: raw?.shipping?.estimatedDelivery ? toIso(raw.shipping.estimatedDelivery) : undefined,
     },
     createdAt,
+    canCancel: Boolean(raw?.canCancel),
+    canRequestCancel: Boolean(raw?.canRequestCancel),
+    cancellationReason: pickString(raw?.cancellationReason) || undefined,
+    cancellationNote: pickString(raw?.cancellationNote) || undefined,
+    refundRequired: Boolean(raw?.refundRequired),
+    refundMessage: pickString(raw?.refundMessage) || undefined,
   };
 };
 

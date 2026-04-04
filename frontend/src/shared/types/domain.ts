@@ -13,6 +13,14 @@ export type OrderStatus =
 
 export type PaymentMethod = "COD" | "BANK_TRANSFER";
 
+export type OrderCancellationReason =
+  | "WRONG_PRODUCT"
+  | "BETTER_PRICE"
+  | "DONT_NEED_ANYMORE"
+  | "CHANGED_MIND"
+  | "DELIVERY_TOO_LONG"
+  | "OTHER";
+
 export type WarrantyStatus = "RECEIVED" | "PROCESSING" | "REJECTED" | "COMPLETED";
 
 export type VoucherStatus = "ACTIVE" | "EXPIRED" | "USED_UP";
@@ -179,6 +187,12 @@ export interface Order {
   payment: Payment;
   shipping: Shipping;
   createdAt: string;
+  canCancel?: boolean;
+  canRequestCancel?: boolean;
+  cancellationReason?: string;
+  cancellationNote?: string;
+  refundRequired?: boolean;
+  refundMessage?: string;
 }
 
 export interface WarrantyRequest {
