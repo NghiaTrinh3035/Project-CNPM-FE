@@ -253,10 +253,13 @@ export interface DiscussionComment {
   id: string;
   productId: string;
   userId: string;
+  senderName?: string;
   content: string;
   parentId?: string;
   createdAt: string;
   aiHandled?: boolean;
+  role?: "USER" | "ASSISTANT";
+  handledBy?: "CUSTOMER" | "AI" | "STAFF";
 }
 
 export interface Notification {

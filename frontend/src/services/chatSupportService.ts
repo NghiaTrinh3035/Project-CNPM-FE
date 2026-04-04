@@ -2,7 +2,7 @@
 
 import axiosClient from "@/api/axiosClient";
 
-export interface SupportDiscussion {
+export interface SupportChat {
   id: string;
   customerId: string;
   customerName: string;
@@ -12,15 +12,15 @@ export interface SupportDiscussion {
   aiHandled: boolean;
 }
 
-export interface SupportDiscussionsPage {
-  items: SupportDiscussion[];
+export interface SupportChatsPage {
+  items: SupportChat[];
   page: number;
   pageSize: number;
   total: number;
   totalPages: number;
 }
 
-export type SupportDiscussionStatus = "OPEN" | "CLOSED" | "ALL";
+export type SupportChatStatus = "OPEN" | "CLOSED" | "ALL";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<{ message?: string }>;
@@ -31,10 +31,10 @@ export const chatSupportService = {
   async listAll(params: {
     page: number;
     pageSize: number;
-    status: SupportDiscussionStatus;
-  }): Promise<SupportDiscussionsPage> {
+    status: SupportChatStatus;
+  }): Promise<SupportChatsPage> {
     try {
-      const { data } = await axiosClient.get<SupportDiscussionsPage>("/chat/support/all", {
+      const { data } = await axiosClient.get<SupportChatsPage>("/chat/support/all", {
         params: {
           page: params.page,
           pageSize: params.pageSize,
@@ -47,26 +47,26 @@ export const chatSupportService = {
     }
   },
 
-  async listPending(): Promise<SupportDiscussion[]> {
+  async listPending(): Promise<SupportChat[]> {
     try {
-      const { data } = await axiosClient.get<SupportDiscussion[]>("/chat/support/pending");
+      const { data } = await axiosClient.get<SupportChat[]>("/chat/support/pending");
       return data;
     } catch (error) {
       throw new Error(getErrorMessage(error, "Không thể tải danh sách hỗ trợ."));
     }
   },
 
-  async reply(discussionId: string, message: string): Promise<void> {
+  async reply(chatId: string, message: string): Promise<void> {
     try {
-      await axiosClient.post(`/chat/support/${discussionId}/reply`, { message });
+      await axiosClient.post(`/chat/support/${chatId}/reply`, { message });
     } catch (error) {
       throw new Error(getErrorMessage(error, "Không thể gửi phản hồi."));
     }
   },
 
-  async close(discussionId: string): Promise<void> {
+  async close(chatId: string): Promise<void> {
     try {
-      await axiosClient.post(`/chat/support/${discussionId}/close`);
+      await axiosClient.post(`/chat/support/${chatId}/close`);
     } catch (error) {
       throw new Error(getErrorMessage(error, "Không thể đóng phiên hỗ trợ."));
     }

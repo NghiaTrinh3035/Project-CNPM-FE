@@ -5,8 +5,8 @@ import { toast } from "sonner";
 
 import {
   chatSupportService,
-  type SupportDiscussion,
-  type SupportDiscussionStatus,
+  type SupportChat,
+  type SupportChatStatus,
 } from "@/services/chatSupportService";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -27,8 +27,8 @@ const formatDateTime = (value?: string | null) => {
   }).format(date);
 };
 
-const DiscussionCard = ({
-  discussion,
+const ChatCard = ({
+  chat,
   draftReply,
   onChangeReply,
   onSendReply,
@@ -36,7 +36,7 @@ const DiscussionCard = ({
   sending,
   closing,
 }: {
-  discussion: SupportDiscussion;
+  chat: SupportChat;
   draftReply: string;
   onChangeReply: (value: string) => void;
   onSendReply: () => void;
@@ -44,15 +44,15 @@ const DiscussionCard = ({
   sending: boolean;
   closing: boolean;
 }) => {
-  const isClosed = Boolean(discussion.endDate);
+  const isClosed = Boolean(chat.endDate);
 
   return (
     <Card className="border-border/60 bg-card/90">
       <CardHeader className="space-y-3 pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-lg font-semibold">{discussion.customerName || "Customer"}</CardTitle>
-            <p className="text-sm text-muted-foreground">ID: {discussion.customerId}</p>
+            <CardTitle className="text-lg font-semibold">{chat.customerName || "Customer"}</CardTitle>
+            <p className="text-sm text-muted-foreground">ID: {chat.customerId}</p>
           </div>
           <Badge className="text-sm" variant={isClosed ? "outline" : "warning"}>
             {isClosed ? "Đã đóng" : "Đang hỗ trợ"}
@@ -61,18 +61,18 @@ const DiscussionCard = ({
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <Clock3 className="h-4 w-4" />
-            Bắt đầu: {formatDateTime(discussion.startDate)}
+            Bắt đầu: {formatDateTime(chat.startDate)}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock3 className="h-4 w-4" />
-            Kết thúc: {isClosed ? formatDateTime(discussion.endDate) : "--"}
+            Kết thúc: {isClosed ? formatDateTime(chat.endDate) : "--"}
           </span>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
         <div className="max-h-64 overflow-y-auto rounded-lg border border-border/60 bg-background/40 p-4 text-base leading-relaxed whitespace-pre-line">
-          {discussion.contentLog || "Chưa có nội dung trao đổi."}
+          {chat.contentLog || "Chưa có nội dung trao đổi."}
         </div>
 
         {isClosed ? (
@@ -111,12 +111,12 @@ const DiscussionCard = ({
 export const StaffSupportPage = () => {
   const queryClient = useQueryClient();
   const [replyMap, setReplyMap] = useState<Record<string, string>>({});
-  const [viewMode, setViewMode] = useState<SupportDiscussionStatus>("OPEN");
+  const [viewMode, setViewMode] = useState<SupportChatStatus>("OPEN");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
 
-  const discussionsQuery = useQuery({
-    queryKey: ["staff-support-discussions", viewMode, page, pageSize],
+  const chatsQuery = useQuery({
+    queryKey: ["staff-support-chats", viewMode, page, pageSize],
     queryFn: () =>
       chatSupportService.listAll({
         page,
@@ -127,24 +127,24 @@ export const StaffSupportPage = () => {
   });
 
   useEffect(() => {
-    const serverTotalPages = Math.max(1, discussionsQuery.data?.totalPages ?? 1);
+    const serverTotalPages = Math.max(1, chatsQuery.data?.totalPages ?? 1);
     if (page > serverTotalPages) {
       setPage(serverTotalPages);
     }
-  }, [discussionsQuery.data?.totalPages, page]);
+  }, [chatsQuery.data?.totalPages, page]);
 
   const replyMutation = useMutation({
     mutationFn: ({
-      discussionId,
+      chatId,
       content,
     }: {
-      discussionId: string;
+      chatId: string;
       content: string;
-    }) => chatSupportService.reply(discussionId, content),
+    }) => chatSupportService.reply(chatId, content),
     onSuccess: (_, variables) => {
       toast.success("Đã gửi phản hồi.");
-      setReplyMap((prev) => ({ ...prev, [variables.discussionId]: "" }));
-      queryClient.invalidateQueries({ queryKey: ["staff-support-discussions"] });
+      setReplyMap((prev) => ({ ...prev, [variables.chatId]: "" }));
+      queryClient.invalidateQueries({ queryKey: ["staff-support-chats"] });
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Không thể gửi phản hồi.");
@@ -152,28 +152,28 @@ export const StaffSupportPage = () => {
   });
 
   const closeMutation = useMutation({
-    mutationFn: (discussionId: string) => chatSupportService.close(discussionId),
+    mutationFn: (chatId: string) => chatSupportService.close(chatId),
     onSuccess: () => {
       toast.success("Đã đóng phiên hỗ trợ.");
-      queryClient.invalidateQueries({ queryKey: ["staff-support-discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["staff-support-chats"] });
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Không thể đóng hỗ trợ.");
     },
   });
 
-  const discussions = discussionsQuery.data?.items ?? [];
-  const totalItems = discussionsQuery.data?.total ?? 0;
-  const totalPages = Math.max(1, discussionsQuery.data?.totalPages ?? 1);
-  const currentPage = discussionsQuery.data?.page ?? page;
+  const chats = chatsQuery.data?.items ?? [];
+  const totalItems = chatsQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, chatsQuery.data?.totalPages ?? 1);
+  const currentPage = chatsQuery.data?.page ?? page;
 
-  const handleReply = (discussionId: string) => {
-    const content = (replyMap[discussionId] ?? "").trim();
+  const handleReply = (chatId: string) => {
+    const content = (replyMap[chatId] ?? "").trim();
     if (!content) {
       toast.error("Nội dung phản hồi không được để trống.");
       return;
     }
-    replyMutation.mutate({ discussionId, content });
+    replyMutation.mutate({ chatId, content });
   };
 
   return (
@@ -192,7 +192,7 @@ export const StaffSupportPage = () => {
               className="w-48 text-base"
               value={viewMode}
               onChange={(event) => {
-                setViewMode(event.target.value as SupportDiscussionStatus);
+                setViewMode(event.target.value as SupportChatStatus);
                 setPage(1);
               }}
             >
@@ -217,40 +217,38 @@ export const StaffSupportPage = () => {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {discussionsQuery.isLoading ? <p className="text-base text-muted-foreground">Đang tải dữ liệu...</p> : null}
-          {discussionsQuery.isError ? (
-            <p className="text-base text-red-500">{(discussionsQuery.error as Error).message}</p>
-          ) : null}
+          {chatsQuery.isLoading ? <p className="text-base text-muted-foreground">Đang tải dữ liệu...</p> : null}
+          {chatsQuery.isError ? <p className="text-base text-red-500">{(chatsQuery.error as Error).message}</p> : null}
 
-          {!discussionsQuery.isLoading && !discussionsQuery.isError && totalItems === 0 ? (
+          {!chatsQuery.isLoading && !chatsQuery.isError && totalItems === 0 ? (
             <p className="text-base text-muted-foreground">Chưa có phiên hỗ trợ nào.</p>
           ) : null}
 
-          {discussions.map((discussion) => (
-            <DiscussionCard
-              key={discussion.id}
-              discussion={discussion}
-              draftReply={replyMap[discussion.id] ?? ""}
-              onChangeReply={(value) => setReplyMap((prev) => ({ ...prev, [discussion.id]: value }))}
-              onSendReply={() => handleReply(discussion.id)}
-              onCloseSupport={() => closeMutation.mutate(discussion.id)}
-              sending={replyMutation.isPending && replyMutation.variables?.discussionId === discussion.id}
-              closing={closeMutation.isPending && closeMutation.variables === discussion.id}
+          {chats.map((chat) => (
+            <ChatCard
+              key={chat.id}
+              chat={chat}
+              draftReply={replyMap[chat.id] ?? ""}
+              onChangeReply={(value) => setReplyMap((prev) => ({ ...prev, [chat.id]: value }))}
+              onSendReply={() => handleReply(chat.id)}
+              onCloseSupport={() => closeMutation.mutate(chat.id)}
+              sending={replyMutation.isPending && replyMutation.variables?.chatId === chat.id}
+              closing={closeMutation.isPending && closeMutation.variables === chat.id}
             />
           ))}
 
-          {!discussionsQuery.isLoading && !discussionsQuery.isError && totalItems > 0 ? (
+          {!chatsQuery.isLoading && !chatsQuery.isError && totalItems > 0 ? (
             <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
               <div className="text-base text-muted-foreground">
                 Trang {currentPage} / {totalPages} - Tổng {totalItems} phiên
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" disabled={currentPage <= 1 || discussionsQuery.isFetching} onClick={() => setPage((prev) => prev - 1)}>
+                <Button variant="outline" disabled={currentPage <= 1 || chatsQuery.isFetching} onClick={() => setPage((prev) => prev - 1)}>
                   Trước
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={currentPage >= totalPages || discussionsQuery.isFetching}
+                  disabled={currentPage >= totalPages || chatsQuery.isFetching}
                   onClick={() => setPage((prev) => prev + 1)}
                 >
                   Sau
