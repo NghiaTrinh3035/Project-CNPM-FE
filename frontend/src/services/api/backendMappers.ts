@@ -37,7 +37,7 @@ const PRODUCT_STATUS_SET = new Set<ProductStatus>([
 ]);
 
 const ROLE_SET = new Set<UserRole>(["CUSTOMER", "STAFF", "OWNER"]);
-const NOTIFICATION_TYPE_SET = new Set<NotificationType>(["ORDER", "WARRANTY", "PROMOTION", "SUPPORT", "SYSTEM"]);
+const NOTIFICATION_TYPE_SET = new Set<NotificationType>(["ORDER", "WARRANTY", "PROMOTION", "SUPPORT", "NEWS", "SYSTEM"]);
 
 const nowIso = () => new Date().toISOString();
 

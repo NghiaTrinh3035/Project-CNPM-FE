@@ -56,12 +56,15 @@ export const NotificationDropdown = () => {
           <span className="pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full bg-luxury-gold" />
         ) : null}
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" className="w-[22rem]">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>{"Th\u00f4ng b\u00e1o"}</span>
           {unreadCount > 0 ? <Badge variant="warning">{`${unreadCount} m\u1edbi`}</Badge> : null}
         </DropdownMenuLabel>
+
         <DropdownMenuSeparator />
+
         {data.slice(0, 5).map((item) => (
           <DropdownMenuItem
             key={item.id}
@@ -75,12 +78,15 @@ export const NotificationDropdown = () => {
             </Link>
           </DropdownMenuItem>
         ))}
+
         {data.length === 0 ? (
           <DropdownMenuItem className="p-3 text-sm text-muted-foreground">
             {"Ch\u01b0a c\u00f3 th\u00f4ng b\u00e1o m\u1edbi."}
           </DropdownMenuItem>
         ) : null}
+
         <DropdownMenuSeparator />
+
         <DropdownMenuItem asChild>
           <Link to={ROUTES.customer.notifications}>{"Xem t\u1ea5t c\u1ea3 th\u00f4ng b\u00e1o"}</Link>
         </DropdownMenuItem>

@@ -24,8 +24,6 @@ import type {
   Voucher,
   VoucherStatus,
   WarrantyStatus,
-  VoucherCreatePayload,
-  VoucherUpdatePayload,
 } from "@/shared/types/domain";
 
 export interface OwnerOverview {
