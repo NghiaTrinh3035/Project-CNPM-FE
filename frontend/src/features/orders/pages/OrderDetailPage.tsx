@@ -142,7 +142,7 @@ export const OrderDetailPage = () => {
                     <Button variant="outline" asChild>
                       <Link to={`/warranty/new?orderId=${order.id}&orderItemId=${item.id}`}>Tạo bảo hành</Link>
                     </Button>
-                  ) : null}
+                  ) : null}}
                 </div>
               </div>
             ))}

@@ -19,6 +19,9 @@ export const ProductCard = ({ product, onAddToCart, onCompare }: ProductCardProp
   const discountPercent = product.salePrice
     ? Math.round(((product.price - product.salePrice) / product.price) * 100)
     : 0;
+  const displayRating = product.averageRating ?? product.rating ?? 0;
+  const hasRating = displayRating > 0;
+  const reviewLabel = product.reviewCount && product.reviewCount > 0 ? ` (${product.reviewCount} đánh giá)` : "";
 
   return (
     <motion.article whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
@@ -42,7 +45,7 @@ export const ProductCard = ({ product, onAddToCart, onCompare }: ProductCardProp
           <div className="flex items-center gap-2">
             <Star className="h-4 w-4 fill-luxury-gold text-luxury-gold" />
             <span className="text-sm">
-              {product.rating} ({product.reviewCount} đánh giá)
+              {hasRating ? `${displayRating.toFixed(1)}${reviewLabel}` : "Chưa có đánh giá"}
             </span>
           </div>
 

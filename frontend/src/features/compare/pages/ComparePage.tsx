@@ -3,10 +3,10 @@ import { ArrowRightLeft, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
-import { reviewApi } from "@/services/api/reviewApi";
 import { productService } from "@/services/productService";
 import { EmptyState } from "@/shared/components/states/EmptyState";
 import { ROUTES } from "@/shared/constants/routes";
+import { useAverageRatings } from "@/shared/hooks/useAverageRatings";
 import { useCompareStore } from "@/shared/hooks/useCompareStore";
 import { toCurrency } from "@/shared/lib/format";
 import { Badge } from "@/shared/ui/badge";
@@ -40,21 +40,7 @@ export const ComparePage = () => {
     enabled: !!productAId && !!productBId,
   });
 
-  const averageRatingsQuery = useQuery({
-    queryKey: ["compare-average-ratings", productAId, productBId],
-    queryFn: async () => {
-      const [leftRating, rightRating] = await Promise.all([
-        reviewApi.getAverageRating(productAId!),
-        reviewApi.getAverageRating(productBId!),
-      ]);
-
-      return {
-        [productAId!]: leftRating,
-        [productBId!]: rightRating,
-      };
-    },
-    enabled: !!productAId && !!productBId,
-  });
+  const averageRatingsQuery = useAverageRatings([productAId, productBId].filter(Boolean) as string[]);
 
   const selectedProducts = selectedQuery.data ?? [];
   const averageRatings = averageRatingsQuery.data ?? {};
