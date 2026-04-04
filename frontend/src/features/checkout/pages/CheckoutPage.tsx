@@ -8,9 +8,10 @@ import { toast } from "sonner";
 
 import { cartService } from "@/services/cartService";
 import { orderService } from "@/services/orderService";
-import type { PaymentMethod } from "@/shared/types/domain";
+import { ROUTES } from "@/shared/constants/routes";
 import { useSession } from "@/shared/hooks/useSession";
 import { toCurrency } from "@/shared/lib/format";
+import type { PaymentMethod } from "@/shared/types/domain";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -98,9 +99,9 @@ export const CheckoutPage = () => {
         note: values.note,
       });
     },
-    onSuccess: (order) => {
-      toast.success("Đặt hàng thành công.");
-      navigate(`/orders/${order.id}`);
+    onSuccess: () => {
+      toast.success("Đặt hàng thành công. Bạn có thể theo dõi tiến trình ở trang Đơn hàng của tôi.");
+      navigate(ROUTES.customer.orders);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -145,7 +146,7 @@ export const CheckoutPage = () => {
             </div>
 
             <Button type="submit" className="w-full" variant="luxury" disabled={checkoutMutation.isPending}>
-              Xác nhận đặt hàng
+              Đặt hàng ngay
             </Button>
           </form>
         </CardContent>
