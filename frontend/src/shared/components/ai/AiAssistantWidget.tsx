@@ -17,7 +17,7 @@ import { Link } from "react-router-dom";
 
 const mapHistoryMessage = (message: ChatHistoryMessageResponse): AiChatMessage => ({
   id: message.id,
-  role: message.role === "user" ? "user" : "assistant",
+  role: message.role.toLowerCase() === "user" ? "user" : "assistant",
   content: message.content,
   createdAt: message.createdAt,
   handledBy: message.handledBy === "STAFF" ? "STAFF" : "AI",
@@ -29,7 +29,6 @@ export const AiAssistantWidget = () => {
   const syncedSupportLinesRef = useRef<Set<string>>(new Set());
   const supportSyncInitializedRef = useRef(false);
   const hadActiveSupportRef = useRef(false);
-  const previousUserIdRef = useRef<string | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
 
   const user = useAuthStore((state) => state.user);
@@ -42,24 +41,19 @@ export const AiAssistantWidget = () => {
     messages,
     pushMessage,
     setMessages,
-    resetConversation,
     status,
     setStatus,
+    hydrateSession,
   } = useAiChatStore();
 
   useEffect(() => {
-    const currentUserId = isAuthenticated ? (user?.id ?? null) : null;
-    if (previousUserIdRef.current === currentUserId) {
-      return;
-    }
-
-    previousUserIdRef.current = currentUserId;
-    resetConversation();
+    const sessionKey = isAuthenticated && user?.id ? `user:${user.id}` : "guest";
+    hydrateSession(sessionKey);
     setActiveRecommendationIds([]);
     syncedSupportLinesRef.current.clear();
     supportSyncInitializedRef.current = false;
     hadActiveSupportRef.current = false;
-  }, [isAuthenticated, user?.id, resetConversation]);
+  }, [hydrateSession, isAuthenticated, user?.id]);
 
   const historyQuery = useQuery({
     queryKey: ["chat-history", user?.id],
@@ -277,7 +271,7 @@ export const AiAssistantWidget = () => {
                       ) : null}
                       <p
                         className={cn(
-                          "max-w-[82%] rounded-2xl px-3 py-2 text-sm",
+                          "max-w-[82%] whitespace-pre-line break-words rounded-2xl px-3 py-2 text-sm leading-relaxed",
                           message.role === "user"
                             ? "bg-luxury-gold text-black"
                             : "bg-accent text-accent-foreground",

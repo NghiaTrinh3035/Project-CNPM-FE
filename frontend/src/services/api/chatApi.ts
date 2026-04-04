@@ -1,4 +1,4 @@
-import type { AxiosError } from "axios";
+import axios, { type AxiosError } from "axios";
 
 import axiosClient from "@/api/axiosClient";
 
@@ -31,8 +31,13 @@ export interface MyActiveSupportResponse {
 }
 
 const base = "/chat";
+const CHAT_REQUEST_TIMEOUT_MS = 60_000;
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error) && error.code === "ECONNABORTED") {
+    return "AI đang xử lý lâu hơn dự kiến. Vui lòng thử lại sau ít giây.";
+  }
+
   const axiosError = error as AxiosError<{ message?: string }>;
   return axiosError.response?.data?.message ?? (error instanceof Error ? error.message : fallback);
 };
@@ -40,7 +45,9 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 export const chatApi = {
   ask: async (payload: ChatAskRequest): Promise<ChatAskResponse> => {
     try {
-      const { data } = await axiosClient.post<ChatAskResponse>(`${base}/ask`, payload);
+      const { data } = await axiosClient.post<ChatAskResponse>(`${base}/ask`, payload, {
+        timeout: CHAT_REQUEST_TIMEOUT_MS,
+      });
       return data;
     } catch (error) {
       throw new Error(getErrorMessage(error, "Không thể lấy phản hồi từ AI."));
