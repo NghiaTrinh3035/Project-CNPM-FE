@@ -3,6 +3,7 @@ import { ArrowRightLeft, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
+import { reviewApi } from "@/services/api/reviewApi";
 import { productService } from "@/services/productService";
 import { EmptyState } from "@/shared/components/states/EmptyState";
 import { ROUTES } from "@/shared/constants/routes";
@@ -18,7 +19,6 @@ const rows = [
   { key: "brand", label: "Thương hiệu" },
   { key: "movementType", label: "Loại máy" },
   { key: "faceSize", label: "Kích thước mặt" },
-  { key: "thickness", label: "Độ dày" },
   { key: "glassMaterial", label: "Mặt kính" },
   { key: "waterResistance", label: "Chống nước" },
   { key: "strapMaterial", label: "Dây đeo" },
@@ -40,7 +40,37 @@ export const ComparePage = () => {
     enabled: !!productAId && !!productBId,
   });
 
+  const averageRatingsQuery = useQuery({
+    queryKey: ["compare-average-ratings", productAId, productBId],
+    queryFn: async () => {
+      const [leftRating, rightRating] = await Promise.all([
+        reviewApi.getAverageRating(productAId!),
+        reviewApi.getAverageRating(productBId!),
+      ]);
+
+      return {
+        [productAId!]: leftRating,
+        [productBId!]: rightRating,
+      };
+    },
+    enabled: !!productAId && !!productBId,
+  });
+
   const selectedProducts = selectedQuery.data ?? [];
+  const averageRatings = averageRatingsQuery.data ?? {};
+
+  const formatValue = (productId: string, key: (typeof rows)[number]["key"], value: unknown) => {
+    if (key === "rating") {
+      const rating = averageRatings[productId as keyof typeof averageRatings];
+      const resolvedRating = typeof rating === "number" ? rating : Number(value);
+      if (!Number.isFinite(resolvedRating) || resolvedRating <= 0) {
+        return "Chưa có đánh giá";
+      }
+      return `${resolvedRating.toFixed(1)}/5`;
+    }
+
+    return String(value ?? "-");
+  };
 
   useEffect(() => {
     const availableIds = new Set(allProductsQuery.data?.items.map((item) => item.id) ?? []);
@@ -138,8 +168,8 @@ export const ComparePage = () => {
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => {
-                    const left = String(selectedProducts[0][row.key]);
-                    const right = String(selectedProducts[1][row.key]);
+                    const left = formatValue(selectedProducts[0].id, row.key, selectedProducts[0][row.key]);
+                    const right = formatValue(selectedProducts[1].id, row.key, selectedProducts[1][row.key]);
                     const isDifferent = left !== right;
                     return (
                       <TableRow key={row.key}>

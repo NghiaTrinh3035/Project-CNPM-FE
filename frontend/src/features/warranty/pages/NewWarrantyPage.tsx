@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ type WarrantyValues = z.infer<typeof schema>;
 export const NewWarrantyPage = () => {
   const { user } = useSession();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const form = useForm<WarrantyValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -44,6 +46,30 @@ export const NewWarrantyPage = () => {
 
   const selectedOrder = ordersQuery.data?.find((order) => order.id === form.watch("orderId"));
 
+  useEffect(() => {
+    const orderId = searchParams.get("orderId");
+    const orderItemId = searchParams.get("orderItemId");
+
+    if (orderId) {
+      form.setValue("orderId", orderId, { shouldDirty: false, shouldTouch: false });
+    }
+    if (orderItemId) {
+      form.setValue("orderItemId", orderItemId, { shouldDirty: false, shouldTouch: false });
+    }
+  }, [form, searchParams]);
+
+  useEffect(() => {
+    if (!selectedOrder) {
+      return;
+    }
+
+    const selectedOrderItemId = form.getValues("orderItemId");
+    const hasSelectedItem = selectedOrder.items.some((item) => item.id === selectedOrderItemId);
+    if (!hasSelectedItem && selectedOrder.items.length > 0) {
+      form.setValue("orderItemId", selectedOrder.items[0].id, { shouldDirty: false, shouldTouch: false });
+    }
+  }, [form, selectedOrder]);
+
   const createMutation = useMutation({
     mutationFn: (values: WarrantyValues) => {
       if (!user) {
@@ -54,11 +80,9 @@ export const NewWarrantyPage = () => {
         return Promise.reject(new Error("Không tìm thấy sản phẩm trong đơn."));
       }
       return warrantyService.create({
-        userId: user.id,
         orderId: values.orderId,
         orderItemId: values.orderItemId,
-        productId: item.productId,
-        description: values.description,
+        issueDescription: values.description,
         images: values.imageUrl ? [values.imageUrl] : [],
       });
     },
@@ -76,6 +100,23 @@ export const NewWarrantyPage = () => {
       </CardHeader>
       <CardContent>
         <form className="space-y-4 sm:max-w-xl" onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}>
+          <div className="grid gap-3 rounded-2xl border border-border/60 bg-card/40 p-4 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Khách hàng</p>
+              <p className="mt-1 font-medium">{selectedOrder?.shipping.address.fullName || user?.fullName || "--"}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Số điện thoại</p>
+              <p className="mt-1 font-medium">{selectedOrder?.shipping.address.phone || user?.phone || "--"}</p>
+            </div>
+            <div className="sm:col-span-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sản phẩm đã chọn</p>
+              <p className="mt-1 font-medium">
+                {selectedOrder?.items.find((item) => item.id === form.watch("orderItemId"))?.productName || "--"}
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Đơn hàng đã mua</label>
             <Select {...form.register("orderId")}>
@@ -95,7 +136,7 @@ export const NewWarrantyPage = () => {
               <option value="">Chọn sản phẩm</option>
               {selectedOrder?.items.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.productName}
+                  {item.productName} x{item.quantity}
                 </option>
               ))}
             </Select>

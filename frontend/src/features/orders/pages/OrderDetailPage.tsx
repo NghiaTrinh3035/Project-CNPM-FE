@@ -133,7 +133,52 @@ export const OrderDetailPage = () => {
                   </div>
                   <p className="font-medium">{toCurrency(item.unitPrice * item.quantity)}</p>
                 </div>
-              ))}
+                <div className="flex items-center gap-3">
+                  <p className="font-medium">{toCurrency(item.unitPrice * item.quantity)}</p>
+                  {[
+                    "DELIVERED",
+                    "COMPLETED",
+                  ].includes(order.status) ? (
+                    <Button variant="outline" asChild>
+                      <Link to={`/warranty/new?orderId=${order.id}&orderItemId=${item.id}`}>Tạo bảo hành</Link>
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+          {order.status === "PENDING" ? (
+            <Button variant="danger" onClick={() => cancelMutation.mutate()}>
+              Hủy đơn hàng
+            </Button>
+          ) : null}
+          {["DELIVERED", "COMPLETED"].includes(order.status) ? (
+            <Button variant="outline" asChild>
+              <Link to="/shop">Viết đánh giá sản phẩm</Link>
+            </Button>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline trạng thái</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {order.timeline.map((event, index) => (
+            <div key={`${event.status}-${event.at}`} className="flex gap-3">
+              <div className="pt-0.5">
+                {index === order.timeline.length - 1 ? (
+                  <CheckCircle2 className="h-4 w-4 text-luxury-gold" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">{ORDER_STATUS_LABEL[event.status]}</p>
+                <p className="text-xs text-muted-foreground">{toShortDate(event.at)}</p>
+                {event.note ? <p className="text-xs text-muted-foreground">{event.note}</p> : null}
+              </div>
             </div>
 
             {order.refundRequired ? (
