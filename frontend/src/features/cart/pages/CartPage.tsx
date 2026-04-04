@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -13,12 +13,22 @@ import { toCurrency } from "@/shared/lib/format";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
+import { Textarea } from "@/shared/ui/textarea";
 
 export const CartPage = () => {
   const { user } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [voucher, setVoucher] = useState("");
+  const [cartNote, setCartNote] = useState("");
+
+  useEffect(() => {
+    if (!user) {
+      setCartNote("");
+      return;
+    }
+    setCartNote(cartService.getCheckoutNote(user.id));
+  }, [user]);
 
   const cartQuery = useQuery({
     queryKey: ["cart", user?.id],
@@ -28,13 +38,14 @@ export const CartPage = () => {
 
   const productQuery = useQuery({
     queryKey: ["cart-products", user?.id, cartQuery.data?.items.map((item) => item.productId).join(",")],
-    queryFn: () =>
-      productService.getByIds(cartQuery.data?.items.map((item) => item.productId) ?? []),
+    queryFn: () => productService.getByIds(cartQuery.data?.items.map((item) => item.productId) ?? []),
     enabled: Boolean(cartQuery.data?.items.length),
   });
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["cart", user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["header-cart", user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["checkout-cart", user?.id] });
   };
 
   const updateMutation = useMutation({
@@ -65,6 +76,33 @@ export const CartPage = () => {
   const products = productQuery.data ?? [];
   const productMap = new Map(products.map((item) => [item.id, item]));
 
+  const handleQuantityChange = (itemId: string, currentQuantity: number, nextQuantity: number, productId: string) => {
+    const product = productMap.get(productId);
+
+    if (nextQuantity <= 0) {
+      toast.info("Số lượng bằng 0, sản phẩm đã được xóa khỏi giỏ hàng.");
+      removeMutation.mutate(itemId);
+      return;
+    }
+
+    if (product) {
+      const maxAllowed = currentQuantity + Math.max(product.stockQuantity, 0);
+      if (nextQuantity > maxAllowed) {
+        toast.error("Số lượng vượt quá tồn kho.");
+        return;
+      }
+    }
+
+    updateMutation.mutate({ itemId, quantity: nextQuantity });
+  };
+
+  const handleCheckout = () => {
+    if (user) {
+      cartService.setCheckoutNote(user.id, cartNote);
+    }
+    navigate(ROUTES.customer.checkout);
+  };
+
   if (!cart || cart.items.length === 0) {
     return (
       <EmptyState
@@ -78,7 +116,12 @@ export const CartPage = () => {
 
   const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   const appliedVoucher = voucher ? voucher : cart.voucherCode;
-  const discount = appliedVoucher?.toUpperCase() === "WELCOME5" ? subtotal * 0.05 : appliedVoucher?.toUpperCase() === "LUXURY10" ? subtotal * 0.1 : 0;
+  const discount =
+    appliedVoucher?.toUpperCase() === "WELCOME5"
+      ? subtotal * 0.05
+      : appliedVoucher?.toUpperCase() === "LUXURY10"
+        ? subtotal * 0.1
+        : 0;
   const total = subtotal - discount;
 
   return (
@@ -107,7 +150,7 @@ export const CartPage = () => {
                   <Button
                     size="icon"
                     variant="outline"
-                    onClick={() => updateMutation.mutate({ itemId: item.id, quantity: item.quantity - 1 })}
+                    onClick={() => handleQuantityChange(item.id, item.quantity, item.quantity - 1, item.productId)}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
@@ -115,7 +158,7 @@ export const CartPage = () => {
                   <Button
                     size="icon"
                     variant="outline"
-                    onClick={() => updateMutation.mutate({ itemId: item.id, quantity: item.quantity + 1 })}
+                    onClick={() => handleQuantityChange(item.id, item.quantity, item.quantity + 1, item.productId)}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -158,7 +201,22 @@ export const CartPage = () => {
             </Button>
           </div>
 
-          <Button className="w-full" variant="luxury" onClick={() => navigate(ROUTES.customer.checkout)}>
+          <div className="space-y-2 pt-2">
+            <p className="text-sm font-medium">Ghi chú đơn hàng</p>
+            <Textarea
+              value={cartNote}
+              onChange={(event) => {
+                const value = event.target.value;
+                setCartNote(value);
+                if (user) {
+                  cartService.setCheckoutNote(user.id, value);
+                }
+              }}
+              placeholder="Ví dụ: giao giờ hành chính, gọi trước khi giao..."
+            />
+          </div>
+
+          <Button className="w-full" variant="luxury" onClick={handleCheckout}>
             Tiến hành thanh toán
           </Button>
         </CardContent>

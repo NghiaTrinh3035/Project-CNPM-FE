@@ -38,6 +38,8 @@ export const AppHeader = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const compareCount = useCompareStore((state) => state.productIds.length);
+  const isStaffOrOwner = user?.role === "OWNER" || user?.role === "STAFF";
+  const adminRoute = user?.role === "OWNER" ? ROUTES.owner.dashboard : ROUTES.staff.dashboard;
 
   const { data: cartData } = useQuery({
     queryKey: ["header-cart", user?.id],
@@ -51,10 +53,6 @@ export const AppHeader = () => {
     event.preventDefault();
     navigate(`${ROUTES.search}?keyword=${encodeURIComponent(keyword)}`);
   };
-
-  const roleDashboardPath =
-    user?.role === "STAFF" ? ROUTES.staff.dashboard : user?.role === "OWNER" ? ROUTES.owner.dashboard : ROUTES.customer.profile;
-
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
@@ -122,8 +120,8 @@ export const AppHeader = () => {
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar>
-                      <AvatarImage src={user.avatar} alt={user.fullName ?? ""} />
-                      <AvatarFallback>{(user.fullName ?? "").slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={user.avatar} alt={user.fullName ?? ""} />
+                    <AvatarFallback>{(user.fullName ?? "").slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
@@ -136,9 +134,11 @@ export const AppHeader = () => {
                   </Badge>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to={roleDashboardPath}>Trang quản trị</Link>
-                </DropdownMenuItem>
+                {isStaffOrOwner ? (
+                  <DropdownMenuItem asChild>
+                    <Link to={adminRoute}>Trang quản trị</Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem asChild>
                   <Link to={ROUTES.customer.profile}>Tài khoản</Link>
                 </DropdownMenuItem>
