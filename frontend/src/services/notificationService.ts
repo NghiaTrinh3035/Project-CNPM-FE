@@ -31,6 +31,18 @@ const markAllInMock = async (userId: string) => {
     });
 };
 
+const deleteOneInMock = async (userId: string, notificationId: string) => {
+  await delay(120);
+  const db = getDb();
+  db.notifications = db.notifications.filter((item) => !(item.userId === userId && item.id === notificationId));
+};
+
+const clearAllInMock = async (userId: string) => {
+  await delay(120);
+  const db = getDb();
+  db.notifications = db.notifications.filter((item) => item.userId !== userId);
+};
+
 const canTryNextEndpoint = (error: unknown) => {
   if (!axios.isAxiosError(error)) {
     return false;
@@ -145,6 +157,40 @@ export const notificationService = {
         throw error;
       }
       await markAllInMock(userId);
+    }
+  },
+
+  async deleteOne(userId: string, notificationId: string): Promise<void> {
+    try {
+      await runCandidateRequests([
+        () => axiosClient.delete(`/notifications/${notificationId}`, { params: { userId } }),
+        () => axiosClient.delete(`/notifications/delete/${notificationId}`, { params: { userId } }),
+        () => axiosClient.delete(`/notifications/${notificationId}`, { data: { userId } }),
+        () => axiosClient.delete(`/notifications/delete/${notificationId}`, { data: { userId } }),
+      ]);
+      return;
+    } catch (error) {
+      if (!shouldFallbackToMock(error)) {
+        throw error;
+      }
+      await deleteOneInMock(userId, notificationId);
+    }
+  },
+
+  async clearAll(userId: string): Promise<void> {
+    try {
+      await runCandidateRequests([
+        () => axiosClient.delete(`/notifications/user/${userId}`),
+        () => axiosClient.delete("/notifications/clear-all", { params: { userId } }),
+        () => axiosClient.delete(`/notifications/user/${userId}`, { data: { userId } }),
+        () => axiosClient.delete("/notifications/clear-all", { data: { userId } }),
+      ]);
+      return;
+    } catch (error) {
+      if (!shouldFallbackToMock(error)) {
+        throw error;
+      }
+      await clearAllInMock(userId);
     }
   },
 };
