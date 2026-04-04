@@ -34,7 +34,10 @@ export const WarrantyPage = () => {
                 <p className="font-medium">Yêu cầu #{item.id}</p>
                 <Badge variant={item.status === "REJECTED" ? "danger" : "outline"}>{WARRANTY_STATUS_LABEL[item.status]}</Badge>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{item.issueDescription}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sản phẩm: {item.productName || item.productId} · Số lượng: {item.quantity}
+              </p>
               <p className="mt-2 text-xs text-muted-foreground">Ngày tạo: {toShortDate(item.createdAt)}</p>
               {item.technicianNote ? (
                 <p className="mt-2 rounded-md bg-accent p-2 text-xs">{item.technicianNote}</p>

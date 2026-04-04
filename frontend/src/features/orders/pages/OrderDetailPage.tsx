@@ -62,7 +62,17 @@ export const OrderDetailPage = () => {
                     <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                   </div>
                 </div>
-                <p className="font-medium">{toCurrency(item.unitPrice * item.quantity)}</p>
+                <div className="flex items-center gap-3">
+                  <p className="font-medium">{toCurrency(item.unitPrice * item.quantity)}</p>
+                  {[
+                    "DELIVERED",
+                    "COMPLETED",
+                  ].includes(order.status) ? (
+                    <Button variant="outline" asChild>
+                      <Link to={`/warranty/new?orderId=${order.id}&orderItemId=${item.id}`}>Tạo bảo hành</Link>
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

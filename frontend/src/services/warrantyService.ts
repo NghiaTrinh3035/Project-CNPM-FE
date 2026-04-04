@@ -1,70 +1,90 @@
-import { getDb } from "@/mocks/data/database";
-import { delay } from "@/services/mock/delay";
+import { warrantyApi } from "@/services/api/warrantyApi";
 import type { WarrantyRequest, WarrantyStatus } from "@/shared/types/domain";
 
-const pushWarrantyNotification = (userId: string, title: string, message: string) => {
-  const db = getDb();
-  db.notifications.unshift({
-    id: `n-${Date.now()}-${Math.round(Math.random() * 1000)}`,
-    userId,
-    title,
-    message,
-    type: "WARRANTY",
-    href: "/warranty",
-    isRead: false,
-    createdAt: new Date().toISOString(),
-  });
+type WarrantyListResponse = {
+  content?: Array<{
+    id?: string;
+    userId?: string | null;
+    orderId?: string | null;
+    orderItemId?: string | null;
+    customerPhone?: string;
+    customerName?: string;
+    issueDescription?: string;
+    receivedDate?: string | number | Date;
+    expectedReturnDate?: string | number | Date;
+    createdAt?: string | number | Date;
+    updatedAt?: string | number | Date;
+    status?: WarrantyStatus | string;
+    technicianNote?: string | null;
+    rejectReason?: string | null;
+    quantity?: number;
+    productId?: string;
+    productName?: string | null;
+  }>;
 };
 
+const toIso = (value: unknown) => {
+  const parsed = new Date(value as string);
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+};
+
+const toWarrantyRequest = (raw: NonNullable<WarrantyListResponse["content"]>[number]): WarrantyRequest => ({
+  id: String(raw.id ?? ""),
+  userId: raw.userId ?? null,
+  orderId: raw.orderId ?? null,
+  orderItemId: raw.orderItemId ?? null,
+  customerName: String(raw.customerName ?? ""),
+  customerPhone: String(raw.customerPhone ?? ""),
+  productId: String(raw.productId ?? ""),
+  productName: raw.productName ?? null,
+  quantity: Math.max(1, Number(raw.quantity ?? 1)),
+  issueDescription: String(raw.issueDescription ?? ""),
+  images: [],
+  receivedDate: toIso(raw.receivedDate),
+  expectedReturnDate: toIso(raw.expectedReturnDate),
+  status: (String(raw.status ?? "RECEIVED").toUpperCase() as WarrantyStatus),
+  technicianNote: raw.technicianNote ?? null,
+  rejectReason: raw.rejectReason ?? null,
+  createdAt: toIso(raw.createdAt),
+  updatedAt: toIso(raw.updatedAt),
+});
+
 export const warrantyService = {
-  async listByUser(userId: string): Promise<WarrantyRequest[]> {
-    await delay(220);
-    return getDb().warranties.filter((item) => item.userId === userId);
+  async listByUser(_userId: string): Promise<WarrantyRequest[]> {
+    const data = await warrantyApi.listByCurrentCustomer();
+    return data.map((item) => toWarrantyRequest(item));
   },
 
   async listAll(): Promise<WarrantyRequest[]> {
-    await delay(220);
-    return getDb().warranties;
+    const data = await warrantyApi.listByCurrentCustomer();
+    return data.map((item) => toWarrantyRequest(item));
   },
 
   async getById(id: string): Promise<WarrantyRequest | null> {
-    await delay(160);
-    return getDb().warranties.find((item) => item.id === id) ?? null;
+    try {
+      const data = await warrantyApi.getById(id);
+      return toWarrantyRequest(data);
+    } catch {
+      return null;
+    }
   },
 
-  async create(input: Omit<WarrantyRequest, "id" | "status" | "updatedAt" | "createdAt">) {
-    await delay(280);
-    const db = getDb();
-    const order = db.orders.find((item) => item.id === input.orderId && item.userId === input.userId);
-    if (!order) {
-      throw new Error("Không tìm thấy đơn hàng hợp lệ.");
-    }
-    if (!["DELIVERED", "COMPLETED"].includes(order.status)) {
-      throw new Error("Chỉ tạo bảo hành cho đơn đã giao hoặc hoàn tất.");
-    }
-    const warranty: WarrantyRequest = {
-      ...input,
-      id: `w-${Date.now()}`,
-      status: "RECEIVED",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    db.warranties.unshift(warranty);
-    pushWarrantyNotification(input.userId, "Yêu cầu bảo hành mới", "Shop đã tiếp nhận yêu cầu bảo hành của bạn.");
-    return structuredClone(warranty);
+  async create(input: {
+    orderId: string;
+    orderItemId: string;
+    issueDescription: string;
+    images?: string[];
+  }) {
+    const data = await warrantyApi.createForCustomer({
+      orderId: input.orderId,
+      orderItemId: input.orderItemId,
+      description: input.issueDescription,
+      images: input.images ?? [],
+    });
+    return toWarrantyRequest(data);
   },
 
-  async updateStatus(id: string, status: WarrantyStatus, technicianNote?: string) {
-    await delay(260);
-    const db = getDb();
-    const item = db.warranties.find((value) => value.id === id);
-    if (!item) {
-      throw new Error("Không tìm thấy yêu cầu bảo hành.");
-    }
-    item.status = status;
-    item.technicianNote = technicianNote;
-    item.updatedAt = new Date().toISOString();
-    pushWarrantyNotification(item.userId, `Bảo hành #${id} cập nhật`, `Trạng thái mới: ${status}`);
-    return structuredClone(item);
+  async updateStatus(_id: string, _status: WarrantyStatus, _technicianNote?: string) {
+    throw new Error("Customer warranty service does not support status updates.");
   },
 };

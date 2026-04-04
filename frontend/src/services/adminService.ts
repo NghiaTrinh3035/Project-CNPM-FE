@@ -8,6 +8,7 @@ import type {
   WarrantyStatusUpdatePayload,
 } from "@/features/warranty/types/warrantyAdmin";
 import { getDb } from "@/mocks/data/database";
+import { warrantyApi } from "@/services/api/warrantyApi";
 import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
 import { mapBackendCategory, mapBackendProduct, mapBackendSupplier, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
 import { orderService } from "@/services/orderService";
@@ -23,9 +24,6 @@ import type {
   User,
   Voucher,
   VoucherStatus,
-  WarrantyStatus,
-  VoucherCreatePayload,
-  VoucherUpdatePayload,
 } from "@/shared/types/domain";
 
 export interface OwnerOverview {
@@ -129,22 +127,6 @@ export interface CategoryPayload {
   description: string | null;
 }
 
-type BackendWarranty = {
-  id?: string;
-  customerPhone?: string;
-  customerName?: string;
-  issueDescription?: string;
-  receivedDate?: string | number | Date;
-  expectedReturnDate?: string | number | Date;
-  status?: string;
-  technicianNote?: string | null;
-  rejectReason?: string | null;
-  quantity?: number;
-  productId?: string;
-  productName?: string | null;
-};
-
-const WARRANTY_STATUS_SET = new Set<WarrantyStatus>(["RECEIVED", "PROCESSING", "COMPLETED", "REJECTED"]);
 export interface ImportReceiptItemPayload {
   productId: string;
   quantity: number;
@@ -328,7 +310,6 @@ const toMockProduct = (
     glassMaterial: payload.glassMaterial,
     waterResistance: payload.waterResistance,
     faceSize: payload.faceSize,
-    thickness: existing?.thickness,
     strapMaterial: existing?.strapMaterial ?? payload.wireMaterial,
     strapColor: existing?.strapColor ?? payload.wireColor,
     wireMaterial: payload.wireMaterial,
@@ -436,32 +417,40 @@ const toNullableText = (value: unknown): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-const toWarrantyStatus = (status: unknown): WarrantyStatus => {
-  const value = String(status ?? "").toUpperCase() as WarrantyStatus;
-  return WARRANTY_STATUS_SET.has(value) ? value : "RECEIVED";
+type BackendWarranty = {
+  id?: string;
+  userId?: string | null;
+  orderId?: string | null;
+  orderItemId?: string | null;
+  customerPhone?: string;
+  customerName?: string;
+  issueDescription?: string;
+  receivedDate?: string | number | Date;
+  expectedReturnDate?: string | number | Date;
+  createdAt?: string | number | Date;
+  updatedAt?: string | number | Date;
+  status?: string;
+  technicianNote?: string | null;
+  rejectReason?: string | null;
+  quantity?: number;
+  productId?: string;
+  productName?: string | null;
 };
 
-const toWarrantyItem = (raw: BackendWarranty): WarrantyAdminItem => {
-  const toIso = (value: unknown) => {
-    const parsed = new Date(value as string);
-    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
-  };
-
-  return {
-    id: String(raw.id ?? ""),
-    customerPhone: String(raw.customerPhone ?? ""),
-    customerName: String(raw.customerName ?? ""),
-    issueDescription: String(raw.issueDescription ?? ""),
-    receivedDate: toIso(raw.receivedDate),
-    expectedReturnDate: toIso(raw.expectedReturnDate),
-    status: toWarrantyStatus(raw.status),
-    technicianNote: toNullableText(raw.technicianNote),
-    rejectReason: toNullableText(raw.rejectReason),
-    quantity: Math.max(1, Number(raw.quantity ?? 1)),
-    productId: String(raw.productId ?? ""),
-    productName: toNullableText(raw.productName),
-  };
-};
+const toWarrantyAdminItem = (raw: BackendWarranty): WarrantyAdminItem => ({
+  id: String(raw.id ?? ""),
+  customerPhone: String(raw.customerPhone ?? ""),
+  customerName: String(raw.customerName ?? ""),
+  issueDescription: String(raw.issueDescription ?? ""),
+  receivedDate: toIso(raw.receivedDate),
+  expectedReturnDate: toIso(raw.expectedReturnDate),
+  status: String(raw.status ?? "RECEIVED").toUpperCase() as WarrantyAdminItem["status"],
+  technicianNote: toNullableText(raw.technicianNote),
+  rejectReason: toNullableText(raw.rejectReason),
+  quantity: Math.max(1, Number(raw.quantity ?? 1)),
+  productId: String(raw.productId ?? ""),
+  productName: toNullableText(raw.productName),
+});
 
 const toCustomerPage = (data: unknown, page: number, pageSize: number): CustomerListResult => {
   const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendUser(item));
@@ -537,24 +526,6 @@ const toSupplierPage = (data: unknown, page: number, pageSize: number): Supplier
 
 const toCategoryPage = (data: unknown, page: number, pageSize: number): CategoryListResult => {
   const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendCategory(item));
-  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
-
-  const total = Number(payload["totalElements"] ?? content.length);
-  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
-  const backendPage = Number(payload["number"] ?? page - 1);
-  const backendSize = Number(payload["size"] ?? pageSize);
-
-  return {
-    items: content,
-    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
-    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
-    total: Number.isFinite(total) ? total : content.length,
-    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
-  };
-};
-
-const toWarrantyPage = (data: unknown, page: number, pageSize: number): WarrantyListResult => {
-  const content = unwrapPage<BackendWarranty>(data).map((item) => toWarrantyItem(item));
   const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
 
   const total = Number(payload["totalElements"] ?? content.length);
@@ -786,20 +757,28 @@ export const adminService = {
   async listWarranties(params: WarrantyListParams = {}): Promise<WarrantyListResult> {
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.max(1, params.pageSize ?? 10);
-    const keyword = params.keyword?.trim() ?? "";
-
+    const keyword = params.keyword?.trim().toLowerCase() ?? "";
     try {
-      const useSearchEndpoint = Boolean(keyword) || Boolean(params.status);
-      const endpoint = useSearchEndpoint ? "/warranties/search" : "/warranties";
-      const { data } = await axiosClient.get(endpoint, {
-        params: {
-          page: page - 1,
-          size: pageSize,
-          ...(keyword ? { keyword } : {}),
-          ...(params.status ? { status: params.status } : {}),
-        },
+      const data = await warrantyApi.listForAdmin({
+        keyword,
+        status: params.status,
+        page,
+        pageSize,
       });
-      return toWarrantyPage(data, page, pageSize);
+      const items = unwrapPage<BackendWarranty>(data).map((item) => toWarrantyAdminItem(item));
+      const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+      const total = Number(payload["totalElements"] ?? items.length);
+      const totalPages = Number(payload["totalPages"] ?? (items.length ? 1 : 0));
+      const backendPage = Number(payload["number"] ?? page - 1);
+      const backendSize = Number(payload["size"] ?? pageSize);
+
+      return {
+        items,
+        page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+        pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+        total: Number.isFinite(total) ? total : items.length,
+        totalPages: Number.isFinite(totalPages) ? totalPages : items.length ? 1 : 0,
+      };
     } catch {
       return {
         items: [],
@@ -813,8 +792,8 @@ export const adminService = {
 
   async getWarrantyById(warrantyId: string): Promise<WarrantyAdminItem | null> {
     try {
-      const { data } = await axiosClient.get<BackendWarranty>(`/warranties/${warrantyId}`);
-      return toWarrantyItem(data);
+      const data = await warrantyApi.getById(warrantyId);
+      return toWarrantyAdminItem(data);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         return null;
@@ -825,8 +804,8 @@ export const adminService = {
 
   async createWarranty(payload: WarrantyCreatePayload): Promise<WarrantyAdminItem> {
     try {
-      const { data } = await axiosClient.post<BackendWarranty>("/warranties/create", payload);
-      return toWarrantyItem(data);
+      const data = await warrantyApi.createForAdmin(payload);
+      return toWarrantyAdminItem(data);
     } catch (error) {
       throw new Error(toApiErrorMessage(error, "Không thể tạo phiếu bảo hành."));
     }
@@ -834,8 +813,8 @@ export const adminService = {
 
   async updateWarrantyStatus(warrantyId: string, payload: WarrantyStatusUpdatePayload): Promise<WarrantyAdminItem> {
     try {
-      const { data } = await axiosClient.patch<BackendWarranty>(`/warranties/${warrantyId}/status`, payload);
-      return toWarrantyItem(data);
+      const data = await warrantyApi.updateStatus(warrantyId, payload);
+      return toWarrantyAdminItem(data);
     } catch (error) {
       throw new Error(toApiErrorMessage(error, "Không thể cập nhật trạng thái bảo hành."));
     }

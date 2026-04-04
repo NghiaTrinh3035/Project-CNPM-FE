@@ -30,7 +30,10 @@ axiosClient.interceptors.response.use(
   (error) => {
     if (error && error.response) {
       const { status } = error.response;
-      if (status === 401) {
+      const requestUrl = error.config?.url ?? "";
+      const isLoginRequest = requestUrl.includes("/auth/login");
+
+      if (status === 401 && !isLoginRequest) {
         localStorage.removeItem(AUTH_STORAGE_KEYS.accessToken);
         window.location.href = ROUTES.auth.login;
       }

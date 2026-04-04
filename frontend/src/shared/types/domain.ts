@@ -56,7 +56,6 @@ export interface Product {
   glassMaterial?: string;
   waterResistance?: string;
   faceSize?: string;
-  thickness?: string;
   strapMaterial?: string;
   strapColor?: string;
   wireMaterial?: string;
@@ -182,14 +181,21 @@ export interface Order {
 
 export interface WarrantyRequest {
   id: string;
-  orderId: string;
-  orderItemId: string;
-  userId: string;
+  orderId?: string | null;
+  orderItemId?: string | null;
+  userId?: string | null;
+  customerName: string;
+  customerPhone: string;
   productId: string;
-  description: string;
+  productName?: string | null;
+  quantity: number;
+  issueDescription: string;
   images: string[];
+  receivedDate: string;
+  expectedReturnDate: string;
   status: WarrantyStatus;
-  technicianNote?: string;
+  technicianNote?: string | null;
+  rejectReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
