@@ -16,6 +16,14 @@ export interface DiscussionAskResponse {
   answer: DiscussionComment;
 }
 
+export interface DiscussionPageResponse {
+  items: DiscussionComment[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<{ message?: string }>;
   return axiosError.response?.data?.message ?? (error instanceof Error ? error.message : fallback);
@@ -27,9 +35,17 @@ export const discussionService = {
     return getDb().discussions.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   },
 
-  async listByProduct(productId: string): Promise<DiscussionComment[]> {
+  async listByProduct(
+    productId: string,
+    params: { page?: number; pageSize?: number } = {},
+  ): Promise<DiscussionPageResponse> {
     try {
-      const { data } = await axiosClient.get<DiscussionComment[]>(`/products/${productId}/discussions`);
+      const { data } = await axiosClient.get<DiscussionPageResponse>(`/products/${productId}/discussions`, {
+        params: {
+          page: params.page ?? 1,
+          pageSize: params.pageSize ?? 10,
+        },
+      });
       return data;
     } catch (error) {
       throw new Error(getErrorMessage(error, "Khong the tai thao luan cua san pham."));

@@ -253,6 +253,7 @@ export interface DiscussionComment {
   id: string;
   productId: string;
   userId: string;
+  senderName?: string;
   content: string;
   parentId?: string;
   createdAt: string;

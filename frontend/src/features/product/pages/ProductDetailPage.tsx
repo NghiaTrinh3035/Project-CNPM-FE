@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageSquareMore, Scale, ShieldCheck, ShoppingBag, Star } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -48,6 +48,7 @@ export const ProductDetailPage = () => {
   const [zoomOpen, setZoomOpen] = useState(false);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const compareAdd = useCompareStore((state) => state.add);
+  const discussionLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const productQuery = useQuery({
     queryKey: ["product-detail", productId],
@@ -62,12 +63,60 @@ export const ProductDetailPage = () => {
     enabled: Boolean(productQuery.data?.id),
   });
 
-  const discussionsQuery = useQuery({
+  const discussionsQuery = useInfiniteQuery({
     queryKey: ["discussions", productQuery.data?.id],
-    queryFn: () =>
-      productQuery.data ? discussionService.listByProduct(productQuery.data.id) : Promise.resolve([]),
+    queryFn: ({ pageParam }) => {
+      const currentPage = typeof pageParam === "number" ? pageParam : 1;
+      return productQuery.data
+        ? discussionService.listByProduct(productQuery.data.id, { page: currentPage, pageSize: 10 })
+        : Promise.resolve({ items: [], page: 1, pageSize: 10, total: 0, totalPages: 0 });
+    },
     enabled: Boolean(productQuery.data?.id),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
   });
+
+  const discussionItems = useMemo(
+    () => discussionsQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [discussionsQuery.data],
+  );
+  const {
+    hasNextPage: hasNextDiscussionPage,
+    isFetchingNextPage: isFetchingNextDiscussionPage,
+    isLoading: isDiscussionLoading,
+    fetchNextPage: fetchNextDiscussionPage,
+  } = discussionsQuery;
+
+  useEffect(() => {
+    const target = discussionLoadMoreRef.current;
+    if (!target) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const isVisible = entries.some((entry) => entry.isIntersecting);
+        if (
+          isVisible &&
+          hasNextDiscussionPage &&
+          !isFetchingNextDiscussionPage &&
+          !isDiscussionLoading
+        ) {
+          fetchNextDiscussionPage();
+        }
+      },
+      { rootMargin: "120px 0px 120px 0px" },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [
+    fetchNextDiscussionPage,
+    hasNextDiscussionPage,
+    isFetchingNextDiscussionPage,
+    isDiscussionLoading,
+  ]);
 
   const relatedQuery = useQuery({
     queryKey: ["related", productQuery.data?.id],
@@ -368,7 +417,7 @@ export const ProductDetailPage = () => {
               </form>
 
               <div className="space-y-3">
-                {discussionsQuery.data?.map((comment) => (
+                {discussionItems.map((comment) => (
                   <div
                     key={comment.id}
                     className={`rounded-xl border border-border/60 p-4 ${
@@ -376,12 +425,28 @@ export const ProductDetailPage = () => {
                     }`}
                   >
                     <p className="text-xs font-medium uppercase tracking-[0.15em] text-luxury-gold/80">
-                      {comment.aiHandled || comment.handledBy === "AI" ? "AI Assistant" : "Khách hàng"}
+                      {comment.aiHandled || comment.handledBy === "AI"
+                        ? "AI Assistant"
+                        : (comment.senderName ?? "Khách hàng")}
                     </p>
                     <p className="text-sm">{comment.content}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{toShortDate(comment.createdAt)}</p>
                   </div>
                 ))}
+
+                {discussionsQuery.isLoading ? (
+                  <p className="text-center text-sm text-muted-foreground">Đang tải thảo luận...</p>
+                ) : null}
+
+                {discussionsQuery.isFetchingNextPage ? (
+                  <p className="text-center text-sm text-muted-foreground">Đang tải thêm...</p>
+                ) : null}
+
+                {!discussionsQuery.hasNextPage && discussionItems.length > 0 ? (
+                  <p className="text-center text-xs text-muted-foreground">Đã hiển thị hết thảo luận.</p>
+                ) : null}
+
+                <div ref={discussionLoadMoreRef} className="h-1 w-full" />
               </div>
             </CardContent>
           </Card>
