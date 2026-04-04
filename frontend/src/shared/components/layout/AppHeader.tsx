@@ -51,10 +51,6 @@ export const AppHeader = () => {
     event.preventDefault();
     navigate(`${ROUTES.search}?keyword=${encodeURIComponent(keyword)}`);
   };
-
-  const roleDashboardPath =
-    user?.role === "STAFF" ? ROUTES.staff.dashboard : user?.role === "OWNER" ? ROUTES.owner.dashboard : ROUTES.customer.profile;
-
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
@@ -136,9 +132,6 @@ export const AppHeader = () => {
                   </Badge>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to={roleDashboardPath}>Trang quản trị</Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to={ROUTES.customer.profile}>Tài khoản</Link>
                 </DropdownMenuItem>
@@ -222,3 +215,4 @@ export const AppHeader = () => {
     </header>
   );
 };
+

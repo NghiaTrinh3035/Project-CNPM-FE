@@ -4,12 +4,14 @@ import type { AxiosError } from "axios";
 import { KeyRound } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/features/auth/components/AuthShell";
 import { forgotPasswordSchema } from "@/features/auth/schemas/authSchemas";
 import { authApi } from "@/services/api/authApi";
+import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
@@ -34,6 +36,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 export const ForgotPasswordPage = () => {
+  const navigate = useNavigate();
   const [emailToReset, setEmailToReset] = useState<string | null>(null);
   const forgotForm = useForm<ForgotValues>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -64,7 +67,10 @@ export const ForgotPasswordPage = () => {
       }),
     onSuccess: (result) => {
       toast.success(result.message ?? "Đặt lại mật khẩu thành công.");
+      forgotForm.reset();
       resetForm.reset();
+      setEmailToReset(null);
+      navigate(ROUTES.auth.login, { replace: true });
     },
     onError: (error: unknown) => toast.error(getErrorMessage(error, "Đặt lại mật khẩu thất bại.")),
   });
