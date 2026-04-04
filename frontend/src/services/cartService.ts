@@ -1,3 +1,5 @@
+﻿import axios from "axios";
+
 import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
 import { mapBackendCart } from "@/services/api/backendMappers";
@@ -5,6 +7,7 @@ import { delay } from "@/services/mock/delay";
 import type { Cart, CartItem } from "@/shared/types/domain";
 
 const CART_VOUCHER_STORAGE_KEY = "chrono-cart-voucher-map";
+const CART_NOTE_STORAGE_KEY = "chrono-cart-note-map";
 
 const readVoucherMap = (): Record<string, string> => {
   try {
@@ -19,11 +22,33 @@ const readVoucherMap = (): Record<string, string> => {
   }
 };
 
+const readNoteMap = (): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(CART_NOTE_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 const voucherByUser: Record<string, string> = readVoucherMap();
+const noteByUser: Record<string, string> = readNoteMap();
 
 const persistVoucherMap = () => {
   try {
     localStorage.setItem(CART_VOUCHER_STORAGE_KEY, JSON.stringify(voucherByUser));
+  } catch {
+    // Ignore storage issues and keep runtime map.
+  }
+};
+
+const persistNoteMap = () => {
+  try {
+    localStorage.setItem(CART_NOTE_STORAGE_KEY, JSON.stringify(noteByUser));
   } catch {
     // Ignore storage issues and keep runtime map.
   }
@@ -39,6 +64,18 @@ const setVoucherForUser = (userId: string, voucherCode?: string) => {
 };
 
 const getVoucherForUser = (userId: string) => voucherByUser[userId];
+
+const setNoteForUser = (userId: string, note: string) => {
+  const normalized = note.trim();
+  if (!normalized) {
+    delete noteByUser[userId];
+  } else {
+    noteByUser[userId] = normalized;
+  }
+  persistNoteMap();
+};
+
+const getNoteForUser = (userId: string) => noteByUser[userId] ?? "";
 
 const findOrCreateMockCart = (userId: string): Cart => {
   const db = getDb();
@@ -63,7 +100,10 @@ const getCartFromApi = async (userId: string): Promise<Cart> => {
 const getCartSafe = async (userId: string): Promise<Cart> => {
   try {
     return await getCartFromApi(userId);
-  } catch {
+  } catch (error) {
+    if (!shouldFallbackToMock(error)) {
+      throw new Error(toErrorMessage(error, "Không thể tải giỏ hàng."));
+    }
     await delay(120);
     return structuredClone(findOrCreateMockCart(userId));
   }
@@ -97,6 +137,33 @@ const resolveProductId = async (userId: string, itemId: string) => {
   return cart.items.find((item) => item.id === itemId)?.productId ?? itemId;
 };
 
+const toErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (data && typeof data === "object" && "message" in data && typeof data.message === "string") {
+      return data.message;
+    }
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
+const shouldFallbackToMock = (error: unknown) => {
+  if (!axios.isAxiosError(error)) {
+    return true;
+  }
+  const status = error.response?.status;
+  if (status === undefined) {
+    return true;
+  }
+  if (status === 400 || status === 401 || status === 403 || status === 404 || status === 409) {
+    return false;
+  }
+  return status === 405 || status >= 500;
+};
+
 export const cartService = {
   async getCart(userId: string): Promise<Cart> {
     return getCartSafe(userId);
@@ -108,7 +175,11 @@ export const cartService = {
         params: { productId, quantity },
       });
       return mapBackendCart(data, { userId, voucherCode: getVoucherForUser(userId) });
-    } catch {
+    } catch (error) {
+      if (!shouldFallbackToMock(error)) {
+        throw new Error(toErrorMessage(error, "Không thể thêm sản phẩm vào giỏ hàng."));
+      }
+
       await delay(140);
       const db = getDb();
       const product = db.products.find((item) => item.id === productId);
@@ -148,7 +219,11 @@ export const cartService = {
         params: { quantity },
       });
       return mapBackendCart(data, { userId, voucherCode: getVoucherForUser(userId) });
-    } catch {
+    } catch (error) {
+      if (!shouldFallbackToMock(error)) {
+        throw new Error(toErrorMessage(error, "Không thể cập nhật số lượng sản phẩm."));
+      }
+
       await delay(120);
       return updateMockItemByProduct(userId, productId, quantity);
     }
@@ -159,7 +234,11 @@ export const cartService = {
     try {
       const { data } = await axiosClient.delete(`/cart/${userId}/items/${productId}`);
       return mapBackendCart(data, { userId, voucherCode: getVoucherForUser(userId) });
-    } catch {
+    } catch (error) {
+      if (!shouldFallbackToMock(error)) {
+        throw new Error(toErrorMessage(error, "Không thể xóa sản phẩm khỏi giỏ hàng."));
+      }
+
       await delay(100);
       return updateMockItemByProduct(userId, productId, 0);
     }
@@ -186,17 +265,32 @@ export const cartService = {
     return { ...cart, voucherCode: code, updatedAt: new Date().toISOString() };
   },
 
-  async clearCart(userId: string) {
+  async clearCart(userId: string, options?: { restock?: boolean }) {
     setVoucherForUser(userId, undefined);
+    setNoteForUser(userId, "");
     try {
-      await axiosClient.delete(`/cart/${userId}/clear`);
+      await axiosClient.delete(`/cart/${userId}/clear`, {
+        params: { restock: options?.restock ?? true },
+      });
       return;
-    } catch {
+    } catch (error) {
+      if (!shouldFallbackToMock(error)) {
+        throw new Error(toErrorMessage(error, "Không thể làm trống giỏ hàng."));
+      }
+
       await delay(80);
       const cart = findOrCreateMockCart(userId);
       cart.items = [];
       cart.voucherCode = undefined;
       cart.updatedAt = new Date().toISOString();
     }
+  },
+
+  getCheckoutNote(userId: string) {
+    return getNoteForUser(userId);
+  },
+
+  setCheckoutNote(userId: string, note: string) {
+    setNoteForUser(userId, note);
   },
 };
