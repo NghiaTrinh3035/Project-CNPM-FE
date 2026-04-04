@@ -257,6 +257,8 @@ export interface DiscussionComment {
   parentId?: string;
   createdAt: string;
   aiHandled?: boolean;
+  role?: "USER" | "ASSISTANT";
+  handledBy?: "CUSTOMER" | "AI" | "STAFF";
 }
 
 export interface Notification {

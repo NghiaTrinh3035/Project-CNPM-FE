@@ -138,7 +138,6 @@ export const ProductDetailPage = () => {
       return discussionService.create({
         content: values.content,
         productId: productQuery.data.id,
-        userId: user.id,
       });
     },
     onSuccess: () => {
@@ -362,7 +361,7 @@ export const ProductDetailPage = () => {
                 {discussionForm.formState.errors.content ? (
                   <p className="text-xs text-red-500">{discussionForm.formState.errors.content.message}</p>
                 ) : null}
-                <Button type="submit">
+                <Button type="submit" disabled={discussionMutation.isPending}>
                   <MessageSquareMore className="mr-2 h-4 w-4" />
                   Gửi thảo luận
                 </Button>
@@ -376,6 +375,9 @@ export const ProductDetailPage = () => {
                       comment.parentId ? "ml-6 bg-card/40" : ""
                     }`}
                   >
+                    <p className="text-xs font-medium uppercase tracking-[0.15em] text-luxury-gold/80">
+                      {comment.aiHandled || comment.handledBy === "AI" ? "AI Assistant" : "Khách hàng"}
+                    </p>
                     <p className="text-sm">{comment.content}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{toShortDate(comment.createdAt)}</p>
                   </div>
