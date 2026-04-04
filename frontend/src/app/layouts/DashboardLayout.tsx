@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, FileText, LayoutDashboard, LogOut, PackageSearch, ShieldCheck, Tag, Ticket, Truck, Users } from "lucide-react";
+﻿import { BarChart3, FileText, LayoutDashboard, LogOut, PackageSearch, ShieldCheck, Tag, Ticket, Truck, Users } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { ROUTES } from "@/shared/constants/routes";
@@ -24,7 +24,6 @@ const ownerMenu = [
   { to: ROUTES.owner.dashboard, label: "Tổng quan", icon: LayoutDashboard },
   { to: ROUTES.owner.products, label: "Sản phẩm", icon: PackageSearch },
   { to: ROUTES.owner.categories, label: "Danh mục", icon: Tag },
-  { to: ROUTES.owner.inventory, label: "Tồn kho", icon: Boxes },
   { to: ROUTES.owner.suppliers, label: "Nhà cung cấp", icon: Users },
   { to: ROUTES.owner.importReceipts, label: "Phiếu nhập", icon: FileText },
   { to: ROUTES.owner.customers, label: "Khách hàng", icon: Users },

@@ -68,7 +68,6 @@ const OwnerProductCreatePage = lazy(() =>
 const OwnerProductEditPage = lazy(() =>
   import("@/features/owner/pages/OwnerProductEditPage").then((m) => ({ default: m.OwnerProductEditPage })),
 );
-const OwnerInventoryPage = lazy(() => import("@/features/owner/pages/OwnerInventoryPage").then((m) => ({ default: m.OwnerInventoryPage })));
 const OwnerSuppliersPage = lazy(() => import("@/features/owner/pages/OwnerSuppliersPage").then((m) => ({ default: m.OwnerSuppliersPage })));
 const OwnerImportReceiptsPage = lazy(() => import("@/features/owner/pages/OwnerImportReceiptsPage").then((m) => ({ default: m.OwnerImportReceiptsPage })));
 const OwnerCustomersPage = lazy(() => import("@/features/owner/pages/OwnerCustomersPage").then((m) => ({ default: m.OwnerCustomersPage })));
@@ -170,7 +169,6 @@ export const AppRouter = () => (
           <Route path={ROUTES.owner.productEdit} element={<OwnerProductEditPage />} />
           <Route path={ROUTES.owner.productDetail} element={<OwnerProductDetailPage />} />
           <Route path={ROUTES.owner.categories} element={<OwnerCategoriesPage />} />
-          <Route path={ROUTES.owner.inventory} element={<OwnerInventoryPage />} />
           <Route path={ROUTES.owner.suppliers} element={<OwnerSuppliersPage />} />
           <Route path={ROUTES.owner.importReceipts} element={<OwnerImportReceiptsPage />} />
           <Route path={ROUTES.owner.customers} element={<OwnerCustomersPage />} />
