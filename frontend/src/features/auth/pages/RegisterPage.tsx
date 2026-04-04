@@ -99,11 +99,14 @@ export const RegisterPage = () => {
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Giới tính</label>
-          <select {...form.register("gender")} className="w-full rounded-md border px-3 py-2">
-            <option value="">Chọn giới tính</option>        
-            <option value="MALE">Nam</option>
-            <option value="FEMALE">Nữ</option>
-            <option value="OTHER">Khác</option>
+          <select
+            {...form.register("gender")}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="" className="bg-white text-slate-900">Chọn giới tính</option>
+            <option value="MALE" className="bg-white text-slate-900">Nam</option>
+            <option value="FEMALE" className="bg-white text-slate-900">Nữ</option>
+            <option value="OTHER" className="bg-white text-slate-900">Khác</option>
           </select>
         </div>
 

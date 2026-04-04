@@ -3,9 +3,7 @@ import { ClipboardCheck, Headset, Package, ShieldCheck, Truck } from "lucide-rea
 
 import { adminService } from "@/services/adminService";
 import { orderService } from "@/services/orderService";
-import { supportService } from "@/services/supportService";
 import { chatSupportService } from "@/services/chatSupportService";
-import { warrantyService } from "@/services/warrantyService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
 export const StaffDashboardPage = () => {

@@ -22,6 +22,7 @@ export type NotificationType =
   | "WARRANTY"
   | "PROMOTION"
   | "SUPPORT"
+  | "NEWS"
   | "SYSTEM";
 
 export type GenderTarget = "MALE" | "FEMALE" | "UNISEX" | "OTHER";
