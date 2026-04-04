@@ -38,6 +38,8 @@ export const AppHeader = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const compareCount = useCompareStore((state) => state.productIds.length);
+  const isStaffOrOwner = user?.role === "OWNER" || user?.role === "STAFF";
+  const adminRoute = user?.role === "OWNER" ? ROUTES.owner.dashboard : ROUTES.staff.dashboard;
 
   const { data: cartData } = useQuery({
     queryKey: ["header-cart", user?.id],
@@ -118,8 +120,8 @@ export const AppHeader = () => {
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar>
-                      <AvatarImage src={user.avatar} alt={user.fullName ?? ""} />
-                      <AvatarFallback>{(user.fullName ?? "").slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={user.avatar} alt={user.fullName ?? ""} />
+                    <AvatarFallback>{(user.fullName ?? "").slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
@@ -132,6 +134,11 @@ export const AppHeader = () => {
                   </Badge>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isStaffOrOwner ? (
+                  <DropdownMenuItem asChild>
+                    <Link to={adminRoute}>Trang quản trị</Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem asChild>
                   <Link to={ROUTES.customer.profile}>Tài khoản</Link>
                 </DropdownMenuItem>
@@ -215,4 +222,3 @@ export const AppHeader = () => {
     </header>
   );
 };
-
