@@ -1,4 +1,4 @@
-import axiosClient from "@/api/axiosClient";
+﻿import axiosClient from "@/api/axiosClient";
 import { cartService } from "@/services/cartService";
 import { mapBackendOrder, unwrapPage } from "@/services/api/backendMappers";
 import type { Order, OrderStatus, PaymentMethod, ShippingAddress } from "@/shared/types/domain";
@@ -10,7 +10,6 @@ export interface PlaceOrderInput {
   note?: string;
 }
 
-
 export const orderService = {
   async placeOrder(input: PlaceOrderInput): Promise<Order> {
     const cart = await cartService.getCart(input.userId);
@@ -18,12 +17,13 @@ export const orderService = {
       throw new Error("Giỏ hàng đang trống.");
     }
 
+    const checkoutNote = (input.note ?? cartService.getCheckoutNote(input.userId)).trim();
     const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const total = subtotal;
     const payload = {
       customerId: input.userId,
       totalAmount: Math.round(total),
-      note: input.note ?? null,
+      note: checkoutNote || null,
       status: "PENDING",
       voucherCode: cart.voucherCode ?? null,
       items: cart.items.map((item) => ({
@@ -46,7 +46,7 @@ export const orderService = {
     };
     const { data } = await axiosClient.post("/orders", payload);
     const mapped = mapBackendOrder(data);
-    await cartService.clearCart(input.userId);
+    await cartService.clearCart(input.userId, { restock: false });
     return mapped;
   },
 
