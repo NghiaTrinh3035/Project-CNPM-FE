@@ -1,4 +1,4 @@
-import type { AxiosError } from "axios";
+﻿import type { AxiosError } from "axios";
 
 import axiosClient from "@/api/axiosClient";
 
@@ -12,15 +12,35 @@ export interface SupportDiscussion {
   aiHandled: boolean;
 }
 
+export interface SupportDiscussionsPage {
+  items: SupportDiscussion[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export type SupportDiscussionStatus = "OPEN" | "CLOSED" | "ALL";
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<{ message?: string }>;
   return axiosError.response?.data?.message ?? (error instanceof Error ? error.message : fallback);
 };
 
 export const chatSupportService = {
-  async listAll(): Promise<SupportDiscussion[]> {
+  async listAll(params: {
+    page: number;
+    pageSize: number;
+    status: SupportDiscussionStatus;
+  }): Promise<SupportDiscussionsPage> {
     try {
-      const { data } = await axiosClient.get<SupportDiscussion[]>("/chat/support/all");
+      const { data } = await axiosClient.get<SupportDiscussionsPage>("/chat/support/all", {
+        params: {
+          page: params.page,
+          pageSize: params.pageSize,
+          status: params.status,
+        },
+      });
       return data;
     } catch (error) {
       throw new Error(getErrorMessage(error, "Không thể tải lịch sử hỗ trợ."));
