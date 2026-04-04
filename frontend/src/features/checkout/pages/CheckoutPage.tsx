@@ -1,5 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+﻿import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -62,10 +63,22 @@ export const CheckoutPage = () => {
       district: "Quận 1",
       ward: "Bến Nghé",
       detailAddress: "",
-      note: "",
+      note: user ? cartService.getCheckoutNote(user.id) : "",
       paymentMethod: "COD",
     },
   });
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    const subscription = form.watch((values, info) => {
+      if (info.name === "note") {
+        cartService.setCheckoutNote(user.id, values.note ?? "");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, user]);
 
   const checkoutMutation = useMutation({
     mutationFn: (values: CheckoutValues) => {

@@ -54,12 +54,16 @@ export const orderService = {
       throw new Error("Giỏ hàng đang trống.");
     }
 
+    const checkoutNote = (input.note ?? "").trim();
     const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const total = Math.max(0, Math.round(subtotal));
     const isPaid = input.paymentMethod !== "COD";
+
     const payload = {
       customerId: input.userId,
-      note: normalizeNote(input.note),
+      totalAmount: total,
+      note: checkoutNote || null,
+      status: "PENDING",
       shippingAddress: buildShippingAddress(input.address),
       voucherCode: cart.voucherCode ?? null,
       items: cart.items.map((item) => ({
@@ -150,6 +154,7 @@ export const orderService = {
       reason: input.reason,
       note: normalizeNote(input.note),
     };
+
     try {
       const { data } = await axiosClient.patch(`/orders/${orderId}/cancel-request`, payload);
       return mapBackendOrder(data);
