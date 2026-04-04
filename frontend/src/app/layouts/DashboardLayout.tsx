@@ -1,6 +1,9 @@
-import { BarChart3, Boxes, FileText, LayoutDashboard, LogOut, PackageSearch, ShieldCheck, Tag, Ticket, Truck, Users } from "lucide-react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+﻿import { BarChart3, FileText, LayoutDashboard, PackageSearch, ShieldCheck, Tag, Ticket, Truck, Users } from "lucide-react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 
+import { NotificationDropdown } from "@/shared/components/common/NotificationDropdown";
+import { ThemeToggle } from "@/shared/components/common/ThemeToggle";
+import { UserAccountMenu } from "@/shared/components/layout/UserAccountMenu";
 import { ROUTES } from "@/shared/constants/routes";
 import { useSession } from "@/shared/hooks/useSession";
 import { cn } from "@/shared/lib/cn";
@@ -24,7 +27,6 @@ const ownerMenu = [
   { to: ROUTES.owner.dashboard, label: "Tổng quan", icon: LayoutDashboard },
   { to: ROUTES.owner.products, label: "Sản phẩm", icon: PackageSearch },
   { to: ROUTES.owner.categories, label: "Danh mục", icon: Tag },
-  { to: ROUTES.owner.inventory, label: "Tồn kho", icon: Boxes },
   { to: ROUTES.owner.suppliers, label: "Nhà cung cấp", icon: Users },
   { to: ROUTES.owner.importReceipts, label: "Phiếu nhập", icon: FileText },
   { to: ROUTES.owner.customers, label: "Khách hàng", icon: Users },
@@ -36,8 +38,10 @@ const ownerMenu = [
 ];
 
 export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
-  const { logout } = useSession();
+  const navigate = useNavigate();
+  const { user, logout } = useSession();
   const menu = role === "OWNER" ? ownerMenu : staffMenu;
+  const dashboardRoute = role === "OWNER" ? ROUTES.owner.dashboard : ROUTES.staff.dashboard;
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -71,12 +75,26 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
               <Button variant="outline" asChild>
                 <Link to={ROUTES.home}>Về trang khách</Link>
               </Button>
-              <Button variant="ghost" onClick={() => window.location.reload()}>Làm mới màn hình</Button>
+              <Button variant="ghost" onClick={() => window.location.reload()}>
+                Làm mới màn hình
+              </Button>
             </div>
-            <Button variant="ghost" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Đăng xuất
-            </Button>
+
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {user ? <NotificationDropdown /> : null}
+              {user ? (
+                <UserAccountMenu
+                  user={user}
+                  showAdminLink
+                  adminRoute={dashboardRoute}
+                  onLogout={() => {
+                    logout();
+                    navigate(ROUTES.home);
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
         </header>
         <main className="flex-1 px-4 py-6 md:px-6">

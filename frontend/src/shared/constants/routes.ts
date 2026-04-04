@@ -49,7 +49,6 @@ export const ROUTES = {
     productEdit: "/owner/products/:id/edit",
     productDetail: "/owner/products/:id",
     categories: "/owner/categories",
-    inventory: "/owner/inventory",
     suppliers: "/owner/suppliers",
     importReceipts: "/owner/import-receipts",
     customers: "/owner/customers",
