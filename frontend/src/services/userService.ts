@@ -18,6 +18,12 @@ export interface UpdateProfileInput {
   role?: User["role"];
 }
 
+export interface ChangePasswordInput {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
 export const userService = {
   async getById(id: string): Promise<User> {
     const { data } = await axiosClient.get(`/users/${id}`);
@@ -36,6 +42,10 @@ export const userService = {
     };
     const { data } = await axiosClient.put(`/users/${input.id}`, payload);
     return mapBackendUser(data);
+  },
+
+  async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
+    await axiosClient.patch(`/users/${userId}/change-password`, input);
   },
 };
 

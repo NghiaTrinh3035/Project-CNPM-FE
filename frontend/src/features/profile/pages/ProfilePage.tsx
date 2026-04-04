@@ -1,6 +1,8 @@
 ﻿import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import axios from "axios";
+import { Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -13,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 
-const schema = z.object({
+const profileSchema = z.object({
   fullName: z
     .string()
     .trim()
@@ -34,8 +36,46 @@ const schema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
 });
 
-type ProfileFormValues = z.infer<typeof schema>;
+const passwordSchema = z
+  .object({
+    oldPassword: z.string().min(1, "Vui lòng nhập mật khẩu cũ."),
+    newPassword: z
+      .string()
+      .min(8, "Mật khẩu mới phải có ít nhất 8 ký tự.")
+      .max(100, "Mật khẩu mới tối đa 100 ký tự."),
+    confirmNewPassword: z.string().min(1, "Vui lòng nhập lại mật khẩu mới."),
+  })
+  .refine((values) => values.newPassword === values.confirmNewPassword, {
+    path: ["confirmNewPassword"],
+    message: "Mật khẩu xác nhận không khớp.",
+  });
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+type PasswordFormValues = z.infer<typeof passwordSchema>;
 type ProfileGender = ProfileFormValues["gender"];
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    const details = error.response?.data?.details;
+    if (Array.isArray(details) && details.length > 0) {
+      const firstDetail = details[0];
+      if (typeof firstDetail === "string" && firstDetail.trim()) {
+        return firstDetail;
+      }
+    }
+
+    const backendMessage = error.response?.data?.message;
+    if (typeof backendMessage === "string" && backendMessage.trim()) {
+      return backendMessage;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 const toProfileGender = (gender: User["gender"]): ProfileGender =>
   gender === "MALE" || gender === "FEMALE" || gender === "OTHER" ? gender : undefined;
@@ -43,9 +83,12 @@ const toProfileGender = (gender: User["gender"]): ProfileGender =>
 export const ProfilePage = () => {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(schema),
+  const profileForm = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: user?.fullName ?? "",
       username: user?.username ?? "",
@@ -53,6 +96,15 @@ export const ProfilePage = () => {
       phone: user?.phone ?? "",
       address: user?.address ?? "",
       gender: toProfileGender(user?.gender),
+    },
+  });
+
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      oldPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
     },
   });
 
@@ -73,7 +125,7 @@ export const ProfilePage = () => {
     }
 
     const profile = profileQuery.data;
-    form.reset({
+    profileForm.reset({
       fullName: profile.fullName ?? "",
       username: profile.username ?? "",
       email: profile.email ?? "",
@@ -82,7 +134,7 @@ export const ProfilePage = () => {
       gender: toProfileGender(profile.gender),
     });
     updateUser(profile);
-  }, [form, profileQuery.data, updateUser]);
+  }, [profileForm, profileQuery.data, updateUser]);
 
   const updateProfileMutation = useMutation({
     mutationFn: (values: ProfileFormValues) => {
@@ -105,7 +157,27 @@ export const ProfilePage = () => {
       toast.success("Cập nhật hồ sơ thành công.");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Cập nhật hồ sơ thất bại.";
+      const message = getErrorMessage(error, "Cập nhật hồ sơ thất bại.");
+      toast.error(message);
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (values: PasswordFormValues) => {
+      if (!user) {
+        throw new Error("Không tìm thấy thông tin người dùng.");
+      }
+      await userService.changePassword(user.id, values);
+    },
+    onSuccess: () => {
+      passwordForm.reset();
+      setShowOldPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmNewPassword(false);
+      toast.success("Đổi mật khẩu thành công.");
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, "Đổi mật khẩu thất bại.");
       toast.error(message);
     },
   });
@@ -114,79 +186,159 @@ export const ProfilePage = () => {
     return null;
   }
 
-  const handleSubmit = (values: ProfileFormValues) => {
+  const handleProfileSubmit = (values: ProfileFormValues) => {
     updateProfileMutation.mutate(values);
   };
 
+  const handleChangePassword = (values: PasswordFormValues) => {
+    changePasswordMutation.mutate(values);
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Thông tin cá nhân</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form className="grid gap-4 sm:max-w-xl" onSubmit={form.handleSubmit(handleSubmit)}>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Họ và tên</label>
-            <Input {...form.register("fullName")} />
-            {form.formState.errors.fullName ? (
-              <p className="text-xs text-red-500">{form.formState.errors.fullName.message}</p>
-            ) : null}
-          </div>
+    <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Thông tin cá nhân</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-4 sm:max-w-xl" onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Họ và tên</label>
+              <Input {...profileForm.register("fullName")} />
+              {profileForm.formState.errors.fullName ? (
+                <p className="text-xs text-red-500">{profileForm.formState.errors.fullName.message}</p>
+              ) : null}
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tên đăng nhập</label>
-            <Input {...form.register("username")} />
-            {form.formState.errors.username ? (
-              <p className="text-xs text-red-500">{form.formState.errors.username.message}</p>
-            ) : null}
-          </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tên đăng nhập</label>
+              <Input {...profileForm.register("username")} />
+              {profileForm.formState.errors.username ? (
+                <p className="text-xs text-red-500">{profileForm.formState.errors.username.message}</p>
+              ) : null}
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Email</label>
-            <Input type="email" {...form.register("email")} />
-            {form.formState.errors.email ? (
-              <p className="text-xs text-red-500">{form.formState.errors.email.message}</p>
-            ) : null}
-          </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input type="email" {...profileForm.register("email")} />
+              {profileForm.formState.errors.email ? (
+                <p className="text-xs text-red-500">{profileForm.formState.errors.email.message}</p>
+              ) : null}
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Số điện thoại</label>
-            <Input {...form.register("phone")} />
-            {form.formState.errors.phone ? (
-              <p className="text-xs text-red-500">{form.formState.errors.phone.message}</p>
-            ) : null}
-          </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Số điện thoại</label>
+              <Input {...profileForm.register("phone")} />
+              {profileForm.formState.errors.phone ? (
+                <p className="text-xs text-red-500">{profileForm.formState.errors.phone.message}</p>
+              ) : null}
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Địa chỉ</label>
-            <Input {...form.register("address")} />
-            {form.formState.errors.address ? (
-              <p className="text-xs text-red-500">{form.formState.errors.address.message}</p>
-            ) : null}
-          </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Địa chỉ</label>
+              <Input {...profileForm.register("address")} />
+              {profileForm.formState.errors.address ? (
+                <p className="text-xs text-red-500">{profileForm.formState.errors.address.message}</p>
+              ) : null}
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Giới tính</label>
-            <Select {...form.register("gender")}>
-              <option value="">Chưa cập nhật</option>
-              <option value="MALE">Nam</option>
-              <option value="FEMALE">Nữ</option>
-              <option value="OTHER">Khác</option>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Giới tính</label>
+              <Select {...profileForm.register("gender")}>
+                <option value="">Chưa cập nhật</option>
+                <option value="MALE">Nam</option>
+                <option value="FEMALE">Nữ</option>
+                <option value="OTHER">Khác</option>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Vai trò</label>
-            <Input value={user.role} disabled />
-          </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Vai trò</label>
+              <Input value={user.role} disabled />
+            </div>
 
-          <Button type="submit" className="w-fit">
-            {updateProfileMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-          </Button>
+            <Button type="submit" className="w-fit">
+              {updateProfileMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+            </Button>
 
-          {profileQuery.isFetching ? <p className="text-xs text-muted-foreground">Đang đồng bộ dữ liệu từ hệ thống...</p> : null}
-        </form>
-      </CardContent>
-    </Card>
+            {profileQuery.isFetching ? <p className="text-xs text-muted-foreground">Đang đồng bộ dữ liệu từ hệ thống...</p> : null}
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Đổi mật khẩu</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4" onSubmit={passwordForm.handleSubmit(handleChangePassword)}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Mật khẩu cũ</label>
+              <div className="relative">
+                <Input type={showOldPassword ? "text" : "password"} className="pr-11" {...passwordForm.register("oldPassword")} />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                  aria-label={showOldPassword ? "Ẩn mật khẩu cũ" : "Hiện mật khẩu cũ"}
+                  onClick={() => setShowOldPassword((prev) => !prev)}
+                >
+                  {showOldPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordForm.formState.errors.oldPassword ? (
+                <p className="text-xs text-red-500">{passwordForm.formState.errors.oldPassword.message}</p>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Mật khẩu mới</label>
+              <div className="relative">
+                <Input type={showNewPassword ? "text" : "password"} className="pr-11" {...passwordForm.register("newPassword")} />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                  aria-label={showNewPassword ? "Ẩn mật khẩu mới" : "Hiện mật khẩu mới"}
+                  onClick={() => setShowNewPassword((prev) => !prev)}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordForm.formState.errors.newPassword ? (
+                <p className="text-xs text-red-500">{passwordForm.formState.errors.newPassword.message}</p>
+              ) : null}
+              <p className="text-xs text-muted-foreground">Mật khẩu mới cần từ 8 đến 100 ký tự.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nhập lại mật khẩu mới</label>
+              <div className="relative">
+                <Input
+                  type={showConfirmNewPassword ? "text" : "password"}
+                  className="pr-11"
+                  {...passwordForm.register("confirmNewPassword")}
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                  aria-label={showConfirmNewPassword ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"}
+                  onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                >
+                  {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordForm.formState.errors.confirmNewPassword ? (
+                <p className="text-xs text-red-500">{passwordForm.formState.errors.confirmNewPassword.message}</p>
+              ) : null}
+            </div>
+
+            <Button type="submit" className="w-full" disabled={changePasswordMutation.isPending}>
+              {changePasswordMutation.isPending ? "Đang đổi mật khẩu..." : "Cập nhật mật khẩu"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
+
+
