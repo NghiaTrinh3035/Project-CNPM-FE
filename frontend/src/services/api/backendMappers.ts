@@ -114,6 +114,9 @@ type BackendProduct = {
   category?: BackendCategory;
   categoryId?: string;
   categoryName?: string;
+  categories?: BackendCategory[];
+  categoryIds?: string[];
+  categoryNames?: string[];
   images?: BackendImage[];
   imageUrls?: string[];
   averageRating?: number;
@@ -125,7 +128,15 @@ type BackendProduct = {
   powerSource?: string;
   warranty?: string;
   waterResistance?: string;
+  wireMaterial?: string;
+  wireColor?: string;
+  caseColor?: string;
+  faceColor?: string;
+  color?: string;
+  size?: string;
+  specs?: string;
   strapMaterial?: string;
+  strapColor?: string;
   glassMaterial?: string;
   faceSize?: string;
   updatedAt?: string | number | Date;
@@ -233,6 +244,7 @@ type BackendVoucher = {
   quantity?: number;
   usageCount?: number;
   isUsed?: boolean;
+  isActive?: boolean;
   minOrderAmount?: number;
   validFrom?: string | number | Date;
   validTo?: string | number | Date;
@@ -286,12 +298,17 @@ export const mapBackendCategory = (raw: BackendCategory | null | undefined): Cat
 
 export const mapBackendProduct = (raw: BackendProduct | null | undefined): Product => {
   const id = pickString(raw?.id, `p-${Date.now()}`);
-  const category = raw?.category
+  const categoriesFromPayload = (raw?.categories ?? [])
+    .map((item) => mapBackendCategory(item))
+    .filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index);
+  const fallbackCategory = raw?.category
     ? mapBackendCategory(raw.category)
     : mapBackendCategory({
         id: raw?.categoryId,
-        name: raw?.categoryName ?? "General",
+        name: raw?.categoryName ?? raw?.categoryNames?.[0] ?? "General",
       });
+  const categories = categoriesFromPayload.length > 0 ? categoriesFromPayload : [fallbackCategory];
+  const category = categories[0] ?? fallbackCategory;
   const imagePool =
     raw?.images?.map((item, index) => ({
       id: pickString(item.id, `${id}-img-${index + 1}`),
@@ -322,13 +339,20 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
   const rating = toNumber(raw?.averageRating ?? raw?.rating, 0);
   const reviewCount = toNumber(raw?.reviewCount ?? raw?.reviews?.length, 0);
   const updatedAt = toIso(raw?.updatedAt ?? raw?.createdAt);
+  const wireMaterial = pickString(raw?.wireMaterial);
+  const wireColor = pickString(raw?.wireColor);
+  const caseColor = pickString(raw?.caseColor);
+  const faceColor = pickString(raw?.faceColor);
+  const strapMaterial = pickString(raw?.strapMaterial);
+  const strapColor = pickString(raw?.strapColor);
 
   return {
     id,
-    sku: pickString(raw?.partNumber, `SKU-${id.slice(0, 8).toUpperCase()}`),
+    sku: pickString(raw?.partNumber, id),
     name: pickString(raw?.name, "Unnamed Product"),
     brand: pickString(raw?.brand, "Unknown"),
     category,
+    categories,
     description: pickString(raw?.description),
     price: toNumber(raw?.price, 0),
     salePrice: raw?.salePrice !== undefined && raw?.salePrice !== null ? toNumber(raw.salePrice, 0) : undefined,
@@ -337,7 +361,14 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
     glassMaterial: pickString(raw?.glassMaterial, "Sapphire Crystal"),
     waterResistance: pickString(raw?.waterResistance, "50m"),
     faceSize: pickString(raw?.faceSize, "40mm"),
-    strapMaterial: pickString(raw?.strapMaterial, "Steel"),
+    strapMaterial: strapMaterial || wireMaterial || "Steel",
+    strapColor: strapColor || wireColor,
+    wireMaterial: wireMaterial || strapMaterial,
+    wireColor: wireColor || strapColor,
+    caseColor,
+    faceColor,
+    color: pickString(raw?.color) || wireColor || caseColor || faceColor,
+    size: pickString(raw?.size) || pickString(raw?.faceSize),
     status: normalizeProductStatus(raw?.status),
     averageRating: rating,
     rating,
@@ -346,10 +377,10 @@ export const mapBackendProduct = (raw: BackendProduct | null | undefined): Produ
     imageUrls: imagePool.map((item) => item.url),
     specs: [
       { label: "Movement", value: pickString(raw?.movementType ?? raw?.powerSource, "-") },
-      { label: "Warranty", value: pickString(raw?.warranty, "-") },
+      { label: "Warranty", value: pickString(raw?.warranty, "2 năm") },
       { label: "Water", value: pickString(raw?.waterResistance, "-") },
     ],
-    tags: [pickString(raw?.brand), category.name].filter(Boolean),
+    tags: [pickString(raw?.brand), ...categories.map((item) => item.name)].filter(Boolean),
     isFeatured: false,
     isBestSeller: false,
     isNewArrival: false,
@@ -496,11 +527,10 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
 
 export const mapBackendReview = (raw: BackendReview | null | undefined): Review => ({
   id: pickString(raw?.id, `r-${Date.now()}`),
-  userId: pickString(raw?.customerId ?? raw?.customer?.id),
+  customerId: pickString(raw?.customerId ?? raw?.customer?.id),
   productId: pickString(raw?.productId ?? raw?.product?.id),
-  orderId: "",
   rating: toNumber(raw?.rating, 5),
-  content: pickString(raw?.comment ?? raw?.content),
+  comment: pickString(raw?.comment ?? raw?.content),
   createdAt: toIso(raw?.createdAt),
 });
 
@@ -524,11 +554,14 @@ export const mapBackendVoucher = (raw: BackendVoucher | null | undefined): Vouch
     usedCount,
     quantity,
     status,
+    isActive: Boolean(raw?.isActive),
     createdAt: toIso(raw?.createdAt ?? raw?.validFrom),
     validFrom,
     validTo,
   };
 };
+
+
 
 const normalizeNotificationType = (value: unknown): NotificationType => {
   const normalized = pickString(value).toUpperCase() as NotificationType;

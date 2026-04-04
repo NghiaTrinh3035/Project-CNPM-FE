@@ -10,11 +10,10 @@ import { toast } from "sonner";
 import { AuthShell } from "@/features/auth/components/AuthShell";
 import { loginSchema } from "@/features/auth/schemas/authSchemas";
 import { authApi } from "@/services/api/authApi";
-import type { AuthSession } from "@/shared/types/domain";
-import type { UserRole } from "@/shared/types/domain";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuthStore } from "@/shared/hooks/useAuthStore";
 import { resolvePostLoginRedirect } from "@/shared/lib/authRedirect";
+import type { AuthSession, UserRole } from "@/shared/types/domain";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
