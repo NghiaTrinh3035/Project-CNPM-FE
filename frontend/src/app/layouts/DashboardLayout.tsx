@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, FileText, LayoutDashboard, LogOut, PackageSearch, ShieldCheck, Ticket, Truck, Users } from "lucide-react";
+import { BarChart3, Boxes, FileText, LayoutDashboard, LogOut, PackageSearch, ShieldCheck, Tag, Ticket, Truck, Users } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { ROUTES } from "@/shared/constants/routes";
@@ -14,6 +14,7 @@ const staffMenu = [
   { to: ROUTES.staff.dashboard, label: "Tổng quan", icon: LayoutDashboard },
   { to: ROUTES.staff.orders, label: "Quản lý đơn", icon: Truck },
   { to: ROUTES.staff.warranties, label: "Bảo hành", icon: ShieldCheck },
+  { to: ROUTES.staff.categories, label: "Danh mục", icon: Tag },
   { to: ROUTES.staff.products, label: "Sản phẩm", icon: PackageSearch },
   { to: ROUTES.staff.customers, label: "Khách hàng", icon: Users },
   { to: ROUTES.staff.support, label: "Hỗ trợ khách hàng", icon: Ticket },
@@ -22,6 +23,7 @@ const staffMenu = [
 const ownerMenu = [
   { to: ROUTES.owner.dashboard, label: "Tổng quan", icon: LayoutDashboard },
   { to: ROUTES.owner.products, label: "Sản phẩm", icon: PackageSearch },
+  { to: ROUTES.owner.categories, label: "Danh mục", icon: Tag },
   { to: ROUTES.owner.inventory, label: "Tồn kho", icon: Boxes },
   { to: ROUTES.owner.suppliers, label: "Nhà cung cấp", icon: Users },
   { to: ROUTES.owner.importReceipts, label: "Phiếu nhập", icon: FileText },

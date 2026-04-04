@@ -1,6 +1,3 @@
-import { getDb } from "@/mocks/data/database";
-import { RuleBasedAiAdapter } from "@/services/adapters/ruleBasedAiAdapter";
+import { BackendAiAdapter } from "@/services/adapters/backendAiAdapter";
 
-export const aiService = new RuleBasedAiAdapter({
-  products: getDb().products,
-});
+export const aiService = new BackendAiAdapter();

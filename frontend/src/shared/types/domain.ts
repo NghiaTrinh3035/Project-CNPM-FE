@@ -45,7 +45,9 @@ export interface Product {
   sku?: string;
   name: string;
   brand?: string;
+  // `category` is kept as the primary category for older views.
   category: Category;
+  categories?: Category[];
   description?: string;
   price: number;
   salePrice?: number;

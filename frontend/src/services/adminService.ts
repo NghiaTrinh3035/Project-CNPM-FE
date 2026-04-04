@@ -1,12 +1,32 @@
 import axios from "axios";
 import axiosClient from "@/api/axiosClient";
+import type {
+  WarrantyAdminItem,
+  WarrantyCreatePayload,
+  WarrantyListParams,
+  WarrantyListResult,
+  WarrantyStatusUpdatePayload,
+} from "@/features/warranty/types/warrantyAdmin";
 import { getDb } from "@/mocks/data/database";
 import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
-import { mapBackendProduct, mapBackendUser, mapBackendVoucher, unwrapPage, mapBackendSupplier} from "@/services/api/backendMappers";
+import { mapBackendCategory, mapBackendProduct, mapBackendSupplier, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
 import { orderService } from "@/services/orderService";
 import { productService } from "@/services/productService";
 import { delay } from "@/services/mock/delay";
-import type { Product, ProductStatus, RevenueReport, StaticPageContent, Supplier, User, Voucher, VoucherStatus, VoucherCreatePayload, VoucherUpdatePayload } from "@/shared/types/domain";
+import type {
+  Category,
+  Product,
+  ProductStatus,
+  RevenueReport,
+  StaticPageContent,
+  Supplier,
+  User,
+  Voucher,
+  VoucherStatus,
+  WarrantyStatus,
+  VoucherCreatePayload,
+  VoucherUpdatePayload,
+} from "@/shared/types/domain";
 
 export interface OwnerOverview {
   revenue: number;
@@ -90,6 +110,81 @@ export interface SupplierPayload {
   address: string | null;
 }
 
+export interface CategoryListParams {
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CategoryListResult {
+  items: Category[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface CategoryPayload {
+  name: string;
+  description: string | null;
+}
+
+type BackendWarranty = {
+  id?: string;
+  customerPhone?: string;
+  customerName?: string;
+  issueDescription?: string;
+  receivedDate?: string | number | Date;
+  expectedReturnDate?: string | number | Date;
+  status?: string;
+  technicianNote?: string | null;
+  rejectReason?: string | null;
+  quantity?: number;
+  productId?: string;
+  productName?: string | null;
+};
+
+const WARRANTY_STATUS_SET = new Set<WarrantyStatus>(["RECEIVED", "PROCESSING", "COMPLETED", "REJECTED"]);
+export interface ImportReceiptItemPayload {
+  productId: string;
+  quantity: number;
+  importPrice: number;
+}
+
+export interface ImportReceiptPayload {
+  supplierId: string;
+  note?: string | null;
+  items: ImportReceiptItemPayload[];
+}
+
+export interface ImportReceiptItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  importPrice: number;
+  lineTotal: number;
+}
+
+export interface ImportReceiptRecord {
+  id: string;
+  importDate: string;
+  note: string | null;
+  supplierId: string;
+  supplierName: string;
+  ownerId: string;
+  items: ImportReceiptItem[];
+  totalAmount: number;
+  totalCost: number;
+}
+
+export interface ImportReceiptListParams {
+  supplierId?: string;
+  fromDate?: string;
+  toDate?: string;
+  keyword?: string;
+}
+
 const calcRevenue = (orders: Awaited<ReturnType<typeof orderService.getAllOrders>>) =>
   orders.reduce((sum, order) => {
     if (["DELIVERED", "COMPLETED"].includes(order.status)) {
@@ -97,6 +192,23 @@ const calcRevenue = (orders: Awaited<ReturnType<typeof orderService.getAllOrders
     }
     return sum;
   }, 0);
+
+const pickString = (value: unknown, fallback = "") => (typeof value === "string" ? value : fallback);
+
+const toNumber = (value: unknown, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const toIso = (value: unknown) => {
+  if (typeof value === "string" || typeof value === "number" || value instanceof Date) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  }
+  return new Date().toISOString();
+};
 
 const buildReports = (orders: Awaited<ReturnType<typeof orderService.getAllOrders>>): RevenueReport[] => {
   const bucket = new Map<string, RevenueReport>();
@@ -128,6 +240,14 @@ const getCategoryIdForProduct = async (product: Product): Promise<string> => {
   return String(target["id"]);
 };
 
+const getCategoryIdsForProduct = async (product: Product): Promise<string[]> => {
+  const ids = (product.categories ?? []).map((category) => category.id).filter(Boolean);
+  if (ids.length > 0) {
+    return Array.from(new Set(ids));
+  }
+  return [await getCategoryIdForProduct(product)];
+};
+
 const serializeSpecs = (specs: Product["specs"]): string =>
   (specs ?? [])
     .map((spec) => `${spec.label}: ${spec.value}`)
@@ -156,7 +276,7 @@ export const toProductCreateRequest = async (product: Product): Promise<ProductC
   description: product.description ?? "",
   price: Math.round(product.price),
   stockQuantity: Math.max(0, Math.round(product.stockQuantity)),
-  categoryId: await getCategoryIdForProduct(product),
+  categoryIds: await getCategoryIdsForProduct(product),
   movementType: product.movementType ?? "",
   glassMaterial: product.glassMaterial ?? "",
   faceSize: product.faceSize ?? "",
@@ -181,7 +301,15 @@ const toMockProduct = (
   existing?: Product,
 ): Product => {
   const db = getDb();
-  const category = db.categories.find((item) => item.id === payload.categoryId) ?? db.categories[0];
+  const payloadCategoryIds = payload.categoryIds?.length
+    ? payload.categoryIds
+    : payload.categoryId
+      ? [payload.categoryId]
+      : [];
+  const categories = payloadCategoryIds
+    .map((categoryId) => db.categories.find((item) => item.id === categoryId))
+    .filter((item): item is (typeof db.categories)[number] => Boolean(item));
+  const category = categories[0] ?? db.categories[0];
   const now = new Date().toISOString();
   const status = "status" in payload ? (payload.status as ProductStatus) : existing?.status ?? "ACTIVE";
 
@@ -191,6 +319,7 @@ const toMockProduct = (
     name: payload.name,
     brand: payload.brand,
     category,
+    categories: categories.length > 0 ? categories : [category],
     description: payload.description,
     price: payload.price,
     salePrice: existing?.salePrice,
@@ -255,14 +384,21 @@ async function updateProduct(id: string, payload: ProductUpdateRequest): Promise
   }
 }
 
-const toVoucherRequest = (voucher: Voucher) => {
-  const now = new Date();
-  const validTo = voucher.isActive ? new Date(voucher.validTo) : new Date(now.getTime() - 1000);
+type VoucherUpsertPayload = {
+  code: string;
+  discountPercent: number;
+  validFrom: string;
+  validTo: string;
+  quantity: number;
+  status?: VoucherStatus;
+};
+
+const toVoucherRequest = (voucher: VoucherUpsertPayload) => {
   return {
     code: voucher.code.trim().toUpperCase(),
     discountPercent: voucher.discountPercent,
     quantity: voucher.quantity,
-    status: voucher.status,
+    status: voucher.status ?? "ACTIVE",
     validFrom: new Date(voucher.validFrom).toISOString(),
     validTo: new Date(voucher.validTo).toISOString(),
   };
@@ -290,6 +426,41 @@ const toApiErrorMessage = (error: unknown, fallback: string) => {
   }
 
   return fallback;
+};
+
+const toNullableText = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const toWarrantyStatus = (status: unknown): WarrantyStatus => {
+  const value = String(status ?? "").toUpperCase() as WarrantyStatus;
+  return WARRANTY_STATUS_SET.has(value) ? value : "RECEIVED";
+};
+
+const toWarrantyItem = (raw: BackendWarranty): WarrantyAdminItem => {
+  const toIso = (value: unknown) => {
+    const parsed = new Date(value as string);
+    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  };
+
+  return {
+    id: String(raw.id ?? ""),
+    customerPhone: String(raw.customerPhone ?? ""),
+    customerName: String(raw.customerName ?? ""),
+    issueDescription: String(raw.issueDescription ?? ""),
+    receivedDate: toIso(raw.receivedDate),
+    expectedReturnDate: toIso(raw.expectedReturnDate),
+    status: toWarrantyStatus(raw.status),
+    technicianNote: toNullableText(raw.technicianNote),
+    rejectReason: toNullableText(raw.rejectReason),
+    quantity: Math.max(1, Number(raw.quantity ?? 1)),
+    productId: String(raw.productId ?? ""),
+    productName: toNullableText(raw.productName),
+  };
 };
 
 const toCustomerPage = (data: unknown, page: number, pageSize: number): CustomerListResult => {
@@ -364,11 +535,91 @@ const toSupplierPage = (data: unknown, page: number, pageSize: number): Supplier
   };
 };
 
+const toCategoryPage = (data: unknown, page: number, pageSize: number): CategoryListResult => {
+  const content = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendCategory(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
+const toWarrantyPage = (data: unknown, page: number, pageSize: number): WarrantyListResult => {
+  const content = unwrapPage<BackendWarranty>(data).map((item) => toWarrantyItem(item));
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const total = Number(payload["totalElements"] ?? content.length);
+  const totalPages = Number(payload["totalPages"] ?? (content.length ? 1 : 0));
+  const backendPage = Number(payload["number"] ?? page - 1);
+  const backendSize = Number(payload["size"] ?? pageSize);
+
+  return {
+    items: content,
+    page: Number.isFinite(backendPage) ? backendPage + 1 : page,
+    pageSize: Number.isFinite(backendSize) ? backendSize : pageSize,
+    total: Number.isFinite(total) ? total : content.length,
+    totalPages: Number.isFinite(totalPages) ? totalPages : content.length ? 1 : 0,
+  };
+};
+
+const mapImportReceiptItem = (raw: unknown, index: number): ImportReceiptItem => {
+  const payload = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const quantity = Math.max(0, Math.round(toNumber(payload["quantity"], 0)));
+  const importPrice = Math.max(0, Math.round(toNumber(payload["importPrice"], 0)));
+  const fallbackLineTotal = quantity * importPrice;
+
+  return {
+    id: pickString(payload["id"], `iri-${Date.now()}-${index}`),
+    productId: pickString(payload["productId"]),
+    productName: pickString(payload["productName"], "San pham"),
+    quantity,
+    importPrice,
+    lineTotal: Math.max(0, Math.round(toNumber(payload["lineTotal"], fallbackLineTotal))),
+  };
+};
+
+const mapImportReceiptRecord = (raw: unknown, index: number): ImportReceiptRecord => {
+  const payload = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const itemsRaw = Array.isArray(payload["items"]) ? payload["items"] : [];
+  const items = itemsRaw.map((item, itemIndex) => mapImportReceiptItem(item, itemIndex));
+  const fallbackTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const totalAmount = Math.max(0, Math.round(toNumber(payload["totalAmount"], fallbackTotal)));
+  const totalCost = Math.max(0, Math.round(toNumber(payload["totalCost"], totalAmount)));
+
+  return {
+    id: pickString(payload["id"], `ir-${Date.now()}-${index}`),
+    importDate: toIso(payload["importDate"]),
+    note: pickString(payload["note"]).trim() || null,
+    supplierId: pickString(payload["supplierId"]),
+    supplierName: pickString(payload["supplierName"], "--"),
+    ownerId: pickString(payload["ownerId"]),
+    items,
+    totalAmount,
+    totalCost,
+  };
+};
+
 export const adminService = {
   async getOwnerOverview(): Promise<OwnerOverview> {
-    const [orders, products] = await Promise.all([
+    const [orders, products, warrantySummary] = await Promise.all([
       orderService.getAllOrders().catch(() => []),
       this.listProducts().catch(() => []),
+      this.listWarranties({ page: 1, pageSize: 1 }).catch(() => ({
+        items: [],
+        page: 1,
+        pageSize: 1,
+        total: 0,
+        totalPages: 0,
+      })),
     ]);
     const soldCounter = new Map<string, number>();
     orders.forEach((order) => {
@@ -387,7 +638,7 @@ export const adminService = {
       totalOrders: orders.length,
       pendingOrders: orders.filter((order) => order.status === "PENDING").length,
       lowStockProducts: products.filter((product) => product.stockQuantity <= 5),
-      warrantyCount: getDb().warranties.length,
+      warrantyCount: warrantySummary.total,
       recentOrders: orders.slice(0, 5),
       bestSellerStats,
     };
@@ -456,9 +707,178 @@ export const adminService = {
     }
   },
 
-  async listImportReceipts() {
-    await delay(120);
-    return getDb().importReceipts;
+  async listCategories(params: CategoryListParams = {}): Promise<CategoryListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    const keyword = params.keyword?.trim() ?? "";
+
+    try {
+      const { data } = await axiosClient.get("/categories/search", {
+        params: {
+          page: page - 1,
+          size: pageSize,
+          ...(keyword ? { keyword } : {}),
+        },
+      });
+      return toCategoryPage(data, page, pageSize);
+    } catch {
+      try {
+        const { data } = await axiosClient.get("/categories");
+        const all = unwrapPage<Record<string, unknown>>(data).map((item) => mapBackendCategory(item));
+        const normalizedKeyword = keyword.toLowerCase();
+        const filtered = normalizedKeyword
+          ? all.filter((item) => `${item.name} ${item.description ?? ""}`.toLowerCase().includes(normalizedKeyword))
+          : all;
+        const total = filtered.length;
+        const totalPages = total ? Math.ceil(total / pageSize) : 0;
+        const offset = (page - 1) * pageSize;
+        return {
+          items: filtered.slice(offset, offset + pageSize),
+          page,
+          pageSize,
+          total,
+          totalPages,
+        };
+      } catch {
+        return {
+          items: [],
+          page,
+          pageSize,
+          total: 0,
+          totalPages: 0,
+        };
+      }
+    }
+  },
+
+  async createCategory(payload: CategoryPayload): Promise<Category> {
+    try {
+      const { data } = await axiosClient.post("/categories", {
+        name: payload.name.trim(),
+        description: payload.description?.trim() ? payload.description.trim() : null,
+      });
+      return mapBackendCategory(data as Record<string, unknown>);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo danh mục."));
+    }
+  },
+
+  async updateCategory(categoryId: string, payload: CategoryPayload): Promise<Category> {
+    try {
+      const { data } = await axiosClient.put(`/categories/${categoryId}`, {
+        name: payload.name.trim(),
+        description: payload.description?.trim() ? payload.description.trim() : null,
+      });
+      return mapBackendCategory(data as Record<string, unknown>);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật danh mục."));
+    }
+  },
+
+  async removeCategory(categoryId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/categories/${categoryId}`);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể xóa danh mục."));
+    }
+  },
+
+  async listWarranties(params: WarrantyListParams = {}): Promise<WarrantyListResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    const keyword = params.keyword?.trim() ?? "";
+
+    try {
+      const useSearchEndpoint = Boolean(keyword) || Boolean(params.status);
+      const endpoint = useSearchEndpoint ? "/warranties/search" : "/warranties";
+      const { data } = await axiosClient.get(endpoint, {
+        params: {
+          page: page - 1,
+          size: pageSize,
+          ...(keyword ? { keyword } : {}),
+          ...(params.status ? { status: params.status } : {}),
+        },
+      });
+      return toWarrantyPage(data, page, pageSize);
+    } catch {
+      return {
+        items: [],
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 0,
+      };
+    }
+  },
+
+  async getWarrantyById(warrantyId: string): Promise<WarrantyAdminItem | null> {
+    try {
+      const { data } = await axiosClient.get<BackendWarranty>(`/warranties/${warrantyId}`);
+      return toWarrantyItem(data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw new Error(toApiErrorMessage(error, "Không thể tải chi tiết bảo hành."));
+    }
+  },
+
+  async createWarranty(payload: WarrantyCreatePayload): Promise<WarrantyAdminItem> {
+    try {
+      const { data } = await axiosClient.post<BackendWarranty>("/warranties/create", payload);
+      return toWarrantyItem(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo phiếu bảo hành."));
+    }
+  },
+
+  async updateWarrantyStatus(warrantyId: string, payload: WarrantyStatusUpdatePayload): Promise<WarrantyAdminItem> {
+    try {
+      const { data } = await axiosClient.patch<BackendWarranty>(`/warranties/${warrantyId}/status`, payload);
+      return toWarrantyItem(data);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể cập nhật trạng thái bảo hành."));
+    }
+  },
+
+  async listImportReceipts(params: ImportReceiptListParams = {}): Promise<ImportReceiptRecord[]> {
+    try {
+      const supplierId = params.supplierId?.trim() ?? "";
+      const keyword = params.keyword?.trim() ?? "";
+      const fromDate = params.fromDate?.trim() ?? "";
+      const toDate = params.toDate?.trim() ?? "";
+      const { data } = await axiosClient.get("/import-receipts", {
+        params: {
+          ...(supplierId ? { supplierId } : {}),
+          ...(keyword ? { keyword } : {}),
+          ...(fromDate ? { fromDate } : {}),
+          ...(toDate ? { toDate } : {}),
+        },
+      });
+
+      const rows = unwrapPage<Record<string, unknown>>(data);
+      return rows.map((item, index) => mapImportReceiptRecord(item, index));
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tải danh sách phiếu nhập."));
+    }
+  },
+
+  async createImportReceipt(payload: ImportReceiptPayload): Promise<ImportReceiptRecord> {
+    try {
+      const body = {
+        supplierId: payload.supplierId,
+        note: payload.note?.trim() || null,
+        items: payload.items.map((item) => ({
+          productId: item.productId,
+          quantity: Math.max(1, Math.round(item.quantity)),
+          importPrice: Math.max(0, Math.round(item.importPrice)),
+        })),
+      };
+      const { data } = await axiosClient.post("/import-receipts", body);
+      return mapImportReceiptRecord(data, 0);
+    } catch (error) {
+      throw new Error(toApiErrorMessage(error, "Không thể tạo phiếu nhập."));
+    }
   },
 
   async listCustomers(params: CustomerListParams = {}): Promise<CustomerListResult> {
@@ -579,7 +999,7 @@ export const adminService = {
     }
   },
 
-  async createVoucher(voucher: VoucherCreatePayload): Promise<Voucher> {
+  async createVoucher(voucher: VoucherUpsertPayload): Promise<Voucher> {
     try {
       const payload = toVoucherRequest(voucher);
       const { data } = await axiosClient.post("/vouchers", payload);
@@ -589,7 +1009,7 @@ export const adminService = {
     }
   },
 
-  async updateVoucher(voucherId: string, voucher: VoucherUpdatePayload): Promise<Voucher> {
+  async updateVoucher(voucherId: string, voucher: VoucherUpsertPayload): Promise<Voucher> {
     try {
       const payload = toVoucherRequest(voucher);
       const { data } = await axiosClient.put(`/vouchers/${voucherId}`, payload);
