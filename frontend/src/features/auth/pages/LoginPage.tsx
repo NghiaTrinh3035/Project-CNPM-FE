@@ -64,7 +64,7 @@ export const LoginPage = () => {
       };
 
       setSession(session);
-      toast.success("Đăng nhập thành công.");
+      toast.success("Đăng nhập thành công.", { duration: 3000 });
       const redirect = resolvePostLoginRedirect(
         session.user.role,
         (location.state as { from?: string } | null)?.from,
@@ -119,3 +119,5 @@ export const LoginPage = () => {
     </AuthShell>
   );
 };
+
+
