@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 }
 
 const staffMenu = [
-  { to: ROUTES.staff.dashboard, label: "Tổng quan", icon: LayoutDashboard },
+  { to: ROUTES.staff.dashboard, label: "Báo Cáo", icon: LayoutDashboard },
   { to: ROUTES.staff.orders, label: "Quản lý đơn", icon: Truck },
   { to: ROUTES.staff.warranties, label: "Bảo hành", icon: ShieldCheck },
   { to: ROUTES.staff.categories, label: "Danh mục", icon: Tag },
@@ -24,7 +24,7 @@ const staffMenu = [
 ];
 
 const ownerMenu = [
-  { to: ROUTES.owner.dashboard, label: "Tổng quan", icon: LayoutDashboard },
+  { to: ROUTES.owner.dashboard, label: "Báo Cáo", icon: LayoutDashboard },
   { to: ROUTES.owner.products, label: "Sản phẩm", icon: PackageSearch },
   { to: ROUTES.owner.categories, label: "Danh mục", icon: Tag },
   { to: ROUTES.owner.suppliers, label: "Nhà cung cấp", icon: Users },
