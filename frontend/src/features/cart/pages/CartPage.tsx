@@ -65,7 +65,8 @@ export const CartPage = () => {
   const voucherMutation = useMutation({
     mutationFn: (code: string) =>
       user ? cartService.applyVoucher(user.id, code) : Promise.reject(new Error("Chưa đăng nhập.")),
-    onSuccess: () => {
+    onSuccess: (_cart, code) => {
+      setVoucher(code.trim().toUpperCase());
       invalidate();
       toast.success("Áp dụng voucher thành công.");
     },
@@ -115,13 +116,9 @@ export const CartPage = () => {
   }
 
   const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const appliedVoucher = voucher ? voucher : cart.voucherCode;
-  const discount =
-    appliedVoucher?.toUpperCase() === "WELCOME5"
-      ? subtotal * 0.05
-      : appliedVoucher?.toUpperCase() === "LUXURY10"
-        ? subtotal * 0.1
-        : 0;
+  const appliedVoucher = cart.voucherCode;
+  const discountPercent = Math.max(0, cart.voucherDiscountPercent ?? 0);
+  const discount = subtotal * (discountPercent / 100);
   const total = subtotal - discount;
 
   return (
@@ -192,11 +189,19 @@ export const CartPage = () => {
 
           <div className="space-y-2 pt-2">
             <Input
-              placeholder="Nhập mã voucher (WELCOME5 / LUXURY10)"
+              placeholder="Nhập mã voucher"
               value={voucher}
               onChange={(event) => setVoucher(event.target.value)}
             />
-            <Button variant="outline" className="w-full" onClick={() => voucherMutation.mutate(voucher)}>
+            {appliedVoucher ? (
+              <p className="text-xs text-emerald-500">Đã áp dụng: {appliedVoucher} ({discountPercent}%)</p>
+            ) : null}
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={!voucher.trim() || voucherMutation.isPending}
+              onClick={() => voucherMutation.mutate(voucher.trim())}
+            >
               Áp dụng mã giảm giá
             </Button>
           </div>

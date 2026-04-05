@@ -108,8 +108,8 @@ export const CheckoutPage = () => {
 
   const cart = cartQuery.data;
   const subtotal = cart?.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) ?? 0;
-  const discount =
-    cart?.voucherCode === "WELCOME5" ? subtotal * 0.05 : cart?.voucherCode === "LUXURY10" ? subtotal * 0.1 : 0;
+  const discountPercent = Math.max(0, cart?.voucherDiscountPercent ?? 0);
+  const discount = subtotal * (discountPercent / 100);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -157,6 +157,11 @@ export const CheckoutPage = () => {
           <CardTitle>Tóm tắt đơn hàng</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
+          {cart?.voucherCode ? (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              Đã áp dụng voucher: <strong>{cart.voucherCode}</strong> ({discountPercent}%)
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <span>Tạm tính</span>
             <span>{toCurrency(subtotal)}</span>

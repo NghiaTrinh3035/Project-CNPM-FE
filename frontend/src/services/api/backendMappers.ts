@@ -423,7 +423,7 @@ export const mapBackendSupplier = (raw: BackendSupplier | null | undefined): Sup
 
 export const mapBackendCart = (
   raw: BackendCart | null | undefined,
-  options: { userId: string; voucherCode?: string } = { userId: "" },
+  options: { userId: string; voucherCode?: string; voucherDiscountPercent?: number } = { userId: "" },
 ): Cart => {
   const items: CartItem[] =
     raw?.items?.map((item, index) => {
@@ -443,6 +443,7 @@ export const mapBackendCart = (
     userId: pickString(raw?.customer?.id, options.userId),
     items,
     voucherCode: options.voucherCode,
+    voucherDiscountPercent: options.voucherDiscountPercent,
     updatedAt: nowIso(),
   };
 };
