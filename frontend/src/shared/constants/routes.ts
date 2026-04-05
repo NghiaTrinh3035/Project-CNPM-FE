@@ -58,7 +58,6 @@ export const ROUTES = {
     staff: "/owner/staff",
     staffDetail: "/owner/staff/:id",
     vouchers: "/owner/vouchers",
-    reports: "/owner/reports",
     content: "/owner/content",
   },
   errors: {
