@@ -1,8 +1,6 @@
-import { Facebook, Mail, MapPin, MessageCircleMore, Phone } from "lucide-react";
+import { Building2, GraduationCap, Users } from "lucide-react";
 
-import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-
 
 export const ContactPage = () => (
   <section className="mx-auto max-w-7xl space-y-8 px-4 py-12 md:px-6">
@@ -17,23 +15,28 @@ export const ContactPage = () => (
     <div className="grid gap-4 md:grid-cols-3">
       <Card>
         <CardContent className="space-y-2 p-5">
-          <MapPin className="h-5 w-5 text-luxury-gold" />
-          <p className="font-medium">Showroom</p>
-          <p className="text-sm text-muted-foreground">21 Dong Khoi, Quận 1, TP. HCM</p>
+          <Users className="h-5 w-5 text-luxury-gold" />
+          <p className="font-medium">Thành viên</p>
+          <ul className="space-y-1 text-sm text-muted-foreground">
+            <li>Lê Nguyễn Đăng Khoa: 23110115</li>
+            <li>Trịnh Đại Nghĩa: 23110131</li>
+            <li>Nguyễn Sư Thành Đạt: 23110089</li>
+            <li>Hà Trường Giang: 23110095</li>
+          </ul>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="space-y-2 p-5">
-          <Phone className="h-5 w-5 text-luxury-gold" />
-          <p className="font-medium">Hotline</p>
-          <p className="text-sm text-muted-foreground">1900 6868 - 0909 000 888</p>
+          <Building2 className="h-5 w-5 text-luxury-gold" />
+          <p className="font-medium">Khoa</p>
+          <p className="text-sm text-muted-foreground">Khoa Công nghệ thông tin</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="space-y-2 p-5">
-          <Mail className="h-5 w-5 text-luxury-gold" />
-          <p className="font-medium">Email</p>
-          <p className="text-sm text-muted-foreground">concierge@chronolux.vn</p>
+          <GraduationCap className="h-5 w-5 text-luxury-gold" />
+          <p className="font-medium">Trường</p>
+          <p className="text-sm text-muted-foreground">Trường Đại học Công nghệ Kỹ thuật TP.HCM</p>
         </CardContent>
       </Card>
     </div>
