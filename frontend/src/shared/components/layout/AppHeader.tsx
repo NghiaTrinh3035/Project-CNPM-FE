@@ -38,7 +38,7 @@ export const AppHeader = () => {
     enabled: Boolean(user),
   });
 
-  const cartCount = cartData?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+  const cartCount = cartData ? new Set(cartData.items.map((item) => item.productId)).size : 0;
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

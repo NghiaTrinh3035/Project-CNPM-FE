@@ -182,6 +182,10 @@ type BackendOrderItem = {
   subTotal?: number;
   productId?: string;
   productName?: string;
+  productImage?: string;
+  productImageUrl?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
   product?: BackendProduct;
 };
 
@@ -459,7 +463,10 @@ export const mapBackendOrder = (raw: BackendOrder | null | undefined): Order => 
       item.subTotal !== undefined
         ? toNumber(item.subTotal, 0) / quantity
         : toNumber(item.product?.price, 0);
-    const productImage = mapBackendProduct(item.product).images[0]?.url ?? "";
+    const productImage = pickString(
+      item.productImage ?? item.productImageUrl ?? item.imageUrl ?? item.thumbnailUrl,
+      item.product ? mapBackendProduct(item.product).images[0]?.url ?? "" : "",
+    );
     return {
       id: pickString(item.id, `${id}-oi-${index + 1}`),
       productId: pickString(item.productId ?? item.product?.id),

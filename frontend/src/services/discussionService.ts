@@ -1,4 +1,4 @@
-import type { AxiosError } from "axios";
+import axios, { type AxiosError } from "axios";
 
 import axiosClient from "@/api/axiosClient";
 import { getDb } from "@/mocks/data/database";
@@ -25,9 +25,15 @@ export interface DiscussionPageResponse {
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error) && error.code === "ECONNABORTED") {
+    return "AI đang trả lời chậm hơn dự kiến. Vui lòng chờ thêm và thử gửi lại nếu cần.";
+  }
+
   const axiosError = error as AxiosError<{ message?: string }>;
   return axiosError.response?.data?.message ?? (error instanceof Error ? error.message : fallback);
 };
+
+const DISCUSSION_CREATE_TIMEOUT_MS = 60_000;
 
 export const discussionService = {
   async listAll(): Promise<DiscussionComment[]> {
@@ -56,6 +62,8 @@ export const discussionService = {
     try {
       const { data } = await axiosClient.post<DiscussionAskResponse>(`/products/${input.productId}/discussions`, {
         content: input.content,
+      }, {
+        timeout: DISCUSSION_CREATE_TIMEOUT_MS,
       });
       return data;
     } catch (error) {

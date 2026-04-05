@@ -175,9 +175,14 @@ export const CheckoutPage = () => {
   }, [navigate, pollingEnabled, qrSession]);
 
   const cart = cartQuery.data;
-  const subtotal = cart?.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) ?? 0;
-  const discount =
-    cart?.voucherCode === "WELCOME5" ? subtotal * 0.05 : cart?.voucherCode === "LUXURY10" ? subtotal * 0.1 : 0;
+  const selectedItemIds = user ? cartService.getSelectedItemIds(user.id) : [];
+  const selectedItemSet = new Set(selectedItemIds);
+  const checkoutItems = cart
+    ? cart.items.filter((item) => (selectedItemSet.size > 0 ? selectedItemSet.has(item.id) : true))
+    : [];
+  const subtotal = checkoutItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const discountPercent = Math.max(0, cart?.voucherDiscountPercent ?? 0);
+  const discount = subtotal * (discountPercent / 100);
   const total = subtotal - discount;
 
   return (

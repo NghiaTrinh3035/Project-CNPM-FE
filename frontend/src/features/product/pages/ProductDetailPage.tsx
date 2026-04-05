@@ -367,12 +367,12 @@ export const ProductDetailPage = () => {
             <p className="font-medium">Liên hệ tư vấn trực tiếp</p>
             <div className="mt-2 flex gap-2">
               <Button variant="outline" asChild>
-                <a href="https://facebook.com" target="_blank" rel="noreferrer">
+                <a href="https://www.facebook.com/khoa.ang.900076/" target="_blank" rel="noreferrer">
                   Facebook
                 </a>
               </Button>
               <Button variant="outline" asChild>
-                <a href="https://zalo.me" target="_blank" rel="noreferrer">
+                <a href="https://zalo.me/0824262709" target="_blank" rel="noreferrer">
                   Zalo
                 </a>
               </Button>

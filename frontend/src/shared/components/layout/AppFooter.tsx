@@ -15,13 +15,13 @@ export const AppFooter = () => (
         </p>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" asChild>
-            <a href="https://facebook.com" target="_blank" rel="noreferrer">
+            <a href="https://www.facebook.com/khoa.ang.900076/" target="_blank" rel="noreferrer">
               <Facebook className="mr-2 h-4 w-4" />
               Tư vấn Facebook
             </a>
           </Button>
           <Button variant="luxury" asChild>
-            <a href="https://zalo.me" target="_blank" rel="noreferrer">
+            <a href="https://zalo.me/0824262709" target="_blank" rel="noreferrer">
               <MessageCircleMore className="mr-2 h-4 w-4" />
               Tư vấn Zalo
             </a>
