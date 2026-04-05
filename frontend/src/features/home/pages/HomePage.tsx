@@ -56,11 +56,23 @@ export const HomePage = () => {
     queryKey: ["home", "new"],
     queryFn: () => productService.getNewArrivals(),
   });
+  const brandProductsQuery = useQuery({
+    queryKey: ["home", "brand-products", selectedBrand],
+    queryFn: async () => {
+      if (!selectedBrand) {
+        return [];
+      }
+      const response = await productService.getAll({ brand: selectedBrand, page: 1, pageSize: 100 });
+      return response.items;
+    },
+    enabled: Boolean(selectedBrand),
+  });
 
   const homeProductIds = [
     ...(featuredQuery.data ?? []),
     ...(bestSellerQuery.data ?? []),
     ...(newArrivalsQuery.data ?? []),
+    ...(brandProductsQuery.data ?? []),
   ].map((product) => product.id);
 
   const averageRatingsQuery = useAverageRatings(homeProductIds);
@@ -81,16 +93,11 @@ export const HomePage = () => {
   const featuredProducts = (featuredQuery.data ?? []).map(applyAverageRating);
   const bestSellerProducts = (bestSellerQuery.data ?? []).map(applyAverageRating);
   const newArrivalProducts = (newArrivalsQuery.data ?? []).map(applyAverageRating);
-  const matchesSelectedBrand = <T extends { brand?: string }>(product: T) => {
-    if (!selectedBrand) {
-      return true;
-    }
-    return (product.brand ?? "").trim().toLowerCase() === selectedBrand.toLowerCase();
-  };
+  const brandProducts = (brandProductsQuery.data ?? []).map(applyAverageRating);
 
-  const filteredFeaturedProducts = featuredProducts.filter(matchesSelectedBrand);
-  const filteredBestSellerProducts = bestSellerProducts.filter(matchesSelectedBrand);
-  const filteredNewArrivalProducts = newArrivalProducts.filter(matchesSelectedBrand);
+  const filteredFeaturedProducts = selectedBrand ? brandProducts : featuredProducts;
+  const filteredBestSellerProducts = selectedBrand ? brandProducts : bestSellerProducts;
+  const filteredNewArrivalProducts = selectedBrand ? brandProducts : newArrivalProducts;
 
   const addCartMutation = useMutation({
     mutationFn: (productId: string) => {
@@ -151,7 +158,7 @@ export const HomePage = () => {
           title="Bộ sưu tập nổi bật"
           description="Những mẫu đồng hồ được khách hàng cao cấp lựa chọn nhiều nhất trong tháng."
         />
-        {featuredQuery.isLoading ? (
+        {featuredQuery.isLoading || (selectedBrand ? brandProductsQuery.isLoading : false) ? (
           <ProductGridSkeleton />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -182,7 +189,7 @@ export const HomePage = () => {
           title="Mẫu bán chạy"
           description="Tập hợp những thiết kế được yêu thích nhất cho đi làm, sự kiện và quà tặng."
         />
-        {bestSellerQuery.isLoading ? (
+        {bestSellerQuery.isLoading || (selectedBrand ? brandProductsQuery.isLoading : false) ? (
           <ProductGridSkeleton count={4} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -211,7 +218,7 @@ export const HomePage = () => {
             title="Bộ sưu tập mới cập nhật"
             description="Những thiết kế mới nhất phù hợp xu hướng 2026, từ classic đến modern luxury."
           />
-          {newArrivalsQuery.isLoading ? (
+          {newArrivalsQuery.isLoading || (selectedBrand ? brandProductsQuery.isLoading : false) ? (
             <ProductGridSkeleton count={4} />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
