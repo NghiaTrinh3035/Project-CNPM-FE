@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import { Logo } from "@/shared/components/layout/Logo";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 
 export const AppFooter = () => (
   <footer className="border-t border-border/60 bg-card/30">
@@ -12,8 +11,7 @@ export const AppFooter = () => (
       <div className="space-y-4 md:col-span-2">
         <Logo />
         <p className="max-w-md text-sm text-muted-foreground">
-          ChronoLux mang đến trải nghiệm mua đồng hồ cao cấp với sản phẩm chính hãng, tư vấn chuyên sâu
-          và dịch vụ hậu mãi minh bạch.
+          ChronoLux mang đến trải nghiệm mua đồng hồ cao cấp với sản phẩm chính hãng, tư vấn chuyên sâu và dịch vụ hậu mãi minh bạch.
         </p>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" asChild>
@@ -51,9 +49,9 @@ export const AppFooter = () => (
     </div>
 
     <div className="border-t border-border/60">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-4 text-xs text-muted-foreground md:flex-row md:px-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
         <p>© {new Date().getFullYear()} ChronoLux. All rights reserved.</p>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <Link to={ROUTES.policies.terms}>Điều khoản</Link>
           <Link to={ROUTES.policies.privacy}>Bảo mật</Link>
           <Link to={ROUTES.policies.returnPolicy}>Đổi trả & Bảo hành</Link>
