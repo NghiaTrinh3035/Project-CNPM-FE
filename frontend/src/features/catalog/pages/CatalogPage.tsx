@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Filter, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -28,6 +28,7 @@ export const CatalogPage = () => {
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const compareAdd = useCompareStore((state) => state.add);
   const { user } = useSession();
+  const queryClient = useQueryClient();
 
   const filters = useMemo(
     () => ({
@@ -66,7 +67,14 @@ export const CatalogPage = () => {
       }
       return cartService.addItem(user.id, productId);
     },
-    onSuccess: () => toast.success("Đã thêm vào giỏ hàng."),
+    onSuccess: (cart) => {
+      if (user) {
+        queryClient.setQueryData(["header-cart", user.id], cart);
+        queryClient.setQueryData(["cart", user.id], cart);
+        queryClient.setQueryData(["checkout-cart", user.id], cart);
+      }
+      toast.success("Đã thêm vào giỏ hàng.");
+    },
     onError: (error) => {
       if (error.message === "UNAUTH") {
         setLoginPromptOpen(true);

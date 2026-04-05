@@ -1,5 +1,5 @@
 ﻿import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +47,7 @@ const paymentMethods: Array<{ value: PaymentMethod; label: string; description: 
 export const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user } = useSession();
+  const queryClient = useQueryClient();
 
   const cartQuery = useQuery({
     queryKey: ["checkout-cart", user?.id],
@@ -80,6 +81,28 @@ export const CheckoutPage = () => {
     return () => subscription.unsubscribe();
   }, [form, user]);
 
+  const cart = cartQuery.data;
+  const selectedItemIds = user ? cartService.getSelectedItemIds(user.id) : [];
+  const selectedItemSet = new Set(selectedItemIds);
+  const checkoutItems =
+    selectedItemIds.length > 0
+      ? (cart?.items.filter((item) => selectedItemSet.has(item.id)) ?? [])
+      : (cart?.items ?? []);
+  const subtotal = checkoutItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const discountPercent = Math.max(0, cart?.voucherDiscountPercent ?? 0);
+  const discount = subtotal * (discountPercent / 100);
+
+  useEffect(() => {
+    if (!user || !cartQuery.data) {
+      return;
+    }
+    const hasStoredSelection = cartService.getSelectedItemIds(user.id).length > 0;
+    if (hasStoredSelection && checkoutItems.length === 0 && cartQuery.data.items.length > 0) {
+      toast.error("Danh sách sản phẩm đã chọn không còn hợp lệ. Vui lòng chọn lại trong giỏ hàng.");
+      navigate(ROUTES.customer.cart);
+    }
+  }, [user, cartQuery.data, checkoutItems.length, navigate]);
+
   const checkoutMutation = useMutation({
     mutationFn: (values: CheckoutValues) => {
       if (!user) {
@@ -97,19 +120,21 @@ export const CheckoutPage = () => {
           detailAddress: values.detailAddress,
         },
         note: values.note,
+        selectedItemIds: checkoutItems.map((item) => item.id),
       });
     },
     onSuccess: () => {
+      if (user) {
+        cartService.clearSelectedItemIds(user.id);
+        queryClient.invalidateQueries({ queryKey: ["cart", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["header-cart", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["checkout-cart", user.id] });
+      }
       toast.success("Đặt hàng thành công. Bạn có thể theo dõi tiến trình ở trang Đơn hàng của tôi.");
       navigate(ROUTES.customer.orders);
     },
     onError: (error: Error) => toast.error(error.message),
   });
-
-  const cart = cartQuery.data;
-  const subtotal = cart?.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) ?? 0;
-  const discountPercent = Math.max(0, cart?.voucherDiscountPercent ?? 0);
-  const discount = subtotal * (discountPercent / 100);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -145,7 +170,12 @@ export const CheckoutPage = () => {
               </p>
             </div>
 
-            <Button type="submit" className="w-full" variant="luxury" disabled={checkoutMutation.isPending}>
+            <Button
+              type="submit"
+              className="w-full"
+              variant="luxury"
+              disabled={checkoutMutation.isPending || checkoutItems.length === 0}
+            >
               Đặt hàng ngay
             </Button>
           </form>
@@ -162,6 +192,7 @@ export const CheckoutPage = () => {
               Đã áp dụng voucher: <strong>{cart.voucherCode}</strong> ({discountPercent}%)
             </div>
           ) : null}
+          <div className="text-xs text-muted-foreground">Đang thanh toán {checkoutItems.length} sản phẩm đã chọn</div>
           <div className="flex justify-between">
             <span>Tạm tính</span>
             <span>{toCurrency(subtotal)}</span>

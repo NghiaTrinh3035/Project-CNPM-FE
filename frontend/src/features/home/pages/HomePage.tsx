@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { CheckCircle2, CircleHelp, Scale, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { useState } from "react";
@@ -39,6 +39,7 @@ const faqs = [
 
 export const HomePage = () => {
   const { user } = useSession();
+  const queryClient = useQueryClient();
   const compareAdd = useCompareStore((state) => state.add);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
@@ -98,7 +99,14 @@ export const HomePage = () => {
       }
       return cartService.addItem(user.id, productId, 1);
     },
-    onSuccess: () => toast.success("Đã thêm sản phẩm vào giỏ hàng."),
+    onSuccess: (cart) => {
+      if (user) {
+        queryClient.setQueryData(["header-cart", user.id], cart);
+        queryClient.setQueryData(["cart", user.id], cart);
+        queryClient.setQueryData(["checkout-cart", user.id], cart);
+      }
+      toast.success("Đã thêm sản phẩm vào giỏ hàng.");
+    },
     onError: (error) => {
       if (error.message === "UNAUTH") {
         setLoginPromptOpen(true);

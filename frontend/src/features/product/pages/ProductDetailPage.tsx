@@ -136,7 +136,14 @@ export const ProductDetailPage = () => {
       }
       return cartService.addItem(user.id, productQuery.data.id);
     },
-    onSuccess: () => toast.success("Đã thêm vào giỏ hàng."),
+    onSuccess: (cart) => {
+      if (user) {
+        queryClient.setQueryData(["header-cart", user.id], cart);
+        queryClient.setQueryData(["cart", user.id], cart);
+        queryClient.setQueryData(["checkout-cart", user.id], cart);
+      }
+      toast.success("Đã thêm vào giỏ hàng.");
+    },
     onError: (error) => {
       if (error.message === "UNAUTH") {
         setLoginPromptOpen(true);

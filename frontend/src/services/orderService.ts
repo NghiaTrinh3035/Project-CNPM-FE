@@ -16,6 +16,7 @@ export interface PlaceOrderInput {
   paymentMethod: PaymentMethod;
   address: ShippingAddress;
   note?: string;
+  selectedItemIds?: string[];
 }
 
 export interface CancelOrderInput {
@@ -32,6 +33,34 @@ const buildShippingAddress = (address: ShippingAddress) =>
 const normalizeNote = (note?: string) => {
   const value = note?.trim();
   return value ? value : null;
+};
+
+const normalizeSelectedItemIds = (itemIds?: string[]) =>
+  Array.from(
+    new Set(
+      (itemIds ?? [])
+        .map((itemId) => itemId.trim())
+        .filter((itemId) => itemId.length > 0),
+    ),
+  );
+
+const syncCartAfterSuccessfulCheckout = async (
+  userId: string,
+  fullCartItems: Array<{ id: string; productId: string; quantity: number }>,
+  checkoutItems: Array<{ id: string; productId: string; quantity: number }>,
+) => {
+  if (checkoutItems.length >= fullCartItems.length) {
+    await cartService.clearCart(userId);
+    return;
+  }
+
+  const purchasedSet = new Set(checkoutItems.map((item) => item.id));
+  const remainingItems = fullCartItems.filter((item) => !purchasedSet.has(item.id));
+
+  await cartService.clearCart(userId);
+  for (const item of remainingItems) {
+    await cartService.addItem(userId, item.productId, item.quantity);
+  }
 };
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
@@ -54,8 +83,17 @@ export const orderService = {
       throw new Error("Giỏ hàng đang trống.");
     }
 
+    const selectedItemIds = normalizeSelectedItemIds(input.selectedItemIds);
+    const checkoutItems =
+      selectedItemIds.length > 0
+        ? cart.items.filter((item) => selectedItemIds.includes(item.id))
+        : cart.items;
+    if (checkoutItems.length === 0) {
+      throw new Error("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+    }
+
     const checkoutNote = (input.note ?? "").trim();
-    const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const subtotal = checkoutItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const total = Math.max(0, Math.round(subtotal));
     const isPaid = input.paymentMethod !== "COD";
 
@@ -66,7 +104,7 @@ export const orderService = {
       status: "PENDING",
       shippingAddress: buildShippingAddress(input.address),
       voucherCode: cart.voucherCode ?? null,
-      items: cart.items.map((item) => ({
+      items: checkoutItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
       })),
@@ -92,7 +130,7 @@ export const orderService = {
       const { data } = await axiosClient.post("/orders", payload);
       const mapped = mapBackendOrder(data);
       try {
-        await cartService.clearCart(input.userId);
+        await syncCartAfterSuccessfulCheckout(input.userId, cart.items, checkoutItems);
       } catch {
         // Cart cleanup failure should not break successful order placement.
       }

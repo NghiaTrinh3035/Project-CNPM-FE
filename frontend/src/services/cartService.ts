@@ -9,6 +9,7 @@ import type { Cart, CartItem } from "@/shared/types/domain";
 const CART_VOUCHER_STORAGE_KEY = "chrono-cart-voucher-map";
 const CART_VOUCHER_DISCOUNT_STORAGE_KEY = "chrono-cart-voucher-discount-map";
 const CART_NOTE_STORAGE_KEY = "chrono-cart-note-map";
+const CART_SELECTED_ITEMS_STORAGE_KEY = "chrono-cart-selected-items-map";
 
 const readVoucherMap = (): Record<string, string> => {
   try {
@@ -31,6 +32,30 @@ const readNoteMap = (): Record<string, string> => {
     }
     const parsed = JSON.parse(raw) as Record<string, string>;
     return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const readSelectedItemsMap = (): Record<string, string[]> => {
+  try {
+    const raw = localStorage.getItem(CART_SELECTED_ITEMS_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+
+    const result: Record<string, string[]> = {};
+    Object.entries(parsed).forEach(([userId, value]) => {
+      if (!Array.isArray(value)) {
+        return;
+      }
+      result[userId] = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+    });
+    return result;
   } catch {
     return {};
   }
@@ -64,6 +89,7 @@ const readVoucherDiscountMap = (): Record<string, number> => {
 
 const voucherDiscountByUser: Record<string, number> = readVoucherDiscountMap();
 const noteByUser: Record<string, string> = readNoteMap();
+const selectedItemsByUser: Record<string, string[]> = readSelectedItemsMap();
 
 const persistVoucherMap = () => {
   try {
@@ -84,6 +110,14 @@ const persistVoucherDiscountMap = () => {
 const persistNoteMap = () => {
   try {
     localStorage.setItem(CART_NOTE_STORAGE_KEY, JSON.stringify(noteByUser));
+  } catch {
+    // Ignore storage issues and keep runtime map.
+  }
+};
+
+const persistSelectedItemsMap = () => {
+  try {
+    localStorage.setItem(CART_SELECTED_ITEMS_STORAGE_KEY, JSON.stringify(selectedItemsByUser));
   } catch {
     // Ignore storage issues and keep runtime map.
   }
@@ -119,6 +153,25 @@ const setNoteForUser = (userId: string, note: string) => {
 };
 
 const getNoteForUser = (userId: string) => noteByUser[userId] ?? "";
+
+const setSelectedItemsForUser = (userId: string, itemIds: string[]) => {
+  const normalized = Array.from(
+    new Set(
+      itemIds
+        .map((itemId) => itemId.trim())
+        .filter((itemId) => itemId.length > 0),
+    ),
+  );
+
+  if (normalized.length === 0) {
+    delete selectedItemsByUser[userId];
+  } else {
+    selectedItemsByUser[userId] = normalized;
+  }
+  persistSelectedItemsMap();
+};
+
+const getSelectedItemsForUser = (userId: string) => selectedItemsByUser[userId] ?? [];
 
 const findOrCreateMockCart = (userId: string): Cart => {
   const db = getDb();
@@ -365,5 +418,17 @@ export const cartService = {
 
   setCheckoutNote(userId: string, note: string) {
     setNoteForUser(userId, note);
+  },
+
+  getSelectedItemIds(userId: string) {
+    return getSelectedItemsForUser(userId);
+  },
+
+  setSelectedItemIds(userId: string, itemIds: string[]) {
+    setSelectedItemsForUser(userId, itemIds);
+  },
+
+  clearSelectedItemIds(userId: string) {
+    setSelectedItemsForUser(userId, []);
   },
 };
