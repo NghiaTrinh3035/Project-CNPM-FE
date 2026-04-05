@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChartLine, ClipboardList, DollarSign, Package, ShieldCheck } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
-import { adminService } from "@/services/adminService";
+import { reportApi } from "@/services/api/reportApi";
 import { ORDER_STATUS_LABEL } from "@/shared/constants/labels";
 import { toCurrency } from "@/shared/lib/format";
 import { Badge } from "@/shared/ui/badge";
@@ -10,13 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
 export const OwnerDashboardPage = () => {
   const overviewQuery = useQuery({
-    queryKey: ["owner-overview"],
-    queryFn: adminService.getOwnerOverview,
+    queryKey: ["owner-dashboard-overview"],
+    queryFn: () => reportApi.getOwnerOverview(),
   });
 
   const reportsQuery = useQuery({
-    queryKey: ["owner-overview-reports"],
-    queryFn: adminService.listReports,
+    queryKey: ["owner-report-revenue"],
+    queryFn: () => reportApi.getRevenue(),
   });
 
   const overview = overviewQuery.data;
@@ -27,7 +27,11 @@ export const OwnerDashboardPage = () => {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: "Doanh thu", value: toCurrency(overview?.revenue ?? 0), icon: DollarSign },
+          {
+            label: "Doanh thu",
+            value: toCurrency(overview?.revenue ?? 0),
+            icon: DollarSign,
+          },
           { label: "Tổng đơn hàng", value: overview?.totalOrders ?? 0, icon: ClipboardList },
           { label: "Đơn chờ xác nhận", value: overview?.pendingOrders ?? 0, icon: ChartLine },
           { label: "Sắp hết hàng", value: overview?.lowStockProducts.length ?? 0, icon: Package },
@@ -81,17 +85,28 @@ export const OwnerDashboardPage = () => {
             <CardTitle>Đơn hàng gần đây</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {overview?.recentOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3 text-sm">
-                <div>
-                  <p className="font-medium">{order.id}</p>
-                  <p className="text-xs text-muted-foreground">{order.shipping.address.fullName}</p>
+            {overview?.recentOrders.length ? (
+              overview.recentOrders.map((order) => (
+                <div key={order.id} className="rounded-lg border border-border/60 p-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{order.id}</p>
+                      <p className="text-xs text-muted-foreground">{order.shipping.address.fullName}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("vi-VN")}</p>
+                    </div>
+                    <Badge variant={order.status === "PENDING" ? "warning" : "outline"}>
+                      {ORDER_STATUS_LABEL[order.status]}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{order.items.length} sản phẩm</span>
+                    <span>{toCurrency(order.total)}</span>
+                  </div>
                 </div>
-                <Badge variant={order.status === "PENDING" ? "warning" : "outline"}>
-                  {ORDER_STATUS_LABEL[order.status]}
-                </Badge>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Chưa có đơn hàng gần đây.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -102,15 +117,19 @@ export const OwnerDashboardPage = () => {
           <CardContent className="space-y-2">
             {overview?.lowStockProducts.length ? (
               overview.lowStockProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3 text-sm">
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                <div key={product.id} className="rounded-lg border border-border/60 p-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.brand}</p>
+                      <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-amber-500">
+                      <AlertTriangle className="h-4 w-4" />
+                      {product.stockQuantity}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-amber-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    {product.stockQuantity}
-                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">Danh mục: {product.category.name}</p>
                 </div>
               ))
             ) : (

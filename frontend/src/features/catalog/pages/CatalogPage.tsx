@@ -76,14 +76,16 @@ export const CatalogPage = () => {
     },
   });
 
-  const updateFilter = (key: string, value: string) => {
+  const updateFilter = (key: string, value: string, resetPage = true) => {
     const next = new URLSearchParams(searchParams);
     if (value) {
       next.set(key, value);
     } else {
       next.delete(key);
     }
-    next.set("page", "1");
+    if (resetPage) {
+      next.set("page", "1");
+    }
     setSearchParams(next);
   };
 
@@ -240,14 +242,14 @@ export const CatalogPage = () => {
               <Button
                 variant="outline"
                 disabled={productsQuery.data.page <= 1}
-                onClick={() => updateFilter("page", String(productsQuery.data!.page - 1))}
+                onClick={() => updateFilter("page", String(productsQuery.data!.page - 1), false)}
               >
                 Trang trước
               </Button>
               <Button
                 variant="outline"
                 disabled={productsQuery.data.page >= productsQuery.data.totalPages}
-                onClick={() => updateFilter("page", String(productsQuery.data!.page + 1))}
+                onClick={() => updateFilter("page", String(productsQuery.data!.page + 1), false)}
               >
                 Trang sau
               </Button>
