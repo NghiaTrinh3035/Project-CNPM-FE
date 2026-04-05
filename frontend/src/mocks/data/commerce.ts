@@ -316,29 +316,112 @@ export const staticContentPages: StaticPageContent[] = [
   {
     id: "about",
     title: "Về ChronoLux",
-    content:
-      "ChronoLux là đơn vị phân phối đồng hồ chính hãng, tập trung vào trải nghiệm mua sắm cao cấp và dịch vụ hậu mãi minh bạch.",
+    content: `Hiện nay, ChronoLux đang phân phối các thương hiệu đồng hồ danh tiếng trên thế giới.
+
+Với mục tiêu đa dạng mẫu mã, cập nhật xu hướng mới nhất, đảm bảo chất lượng và giữ mức giá cạnh tranh, chúng tôi luôn trân trọng việc xây dựng mối quan hệ bền vững với khách hàng, đối tác và nhà cung cấp.
+
+ChronoLux mong muốn hợp tác với các đối tác tiềm năng để mang đến những mẫu đồng hồ mới nhất trong tinh thần cùng có lợi và cùng phát triển.
+
+Thành công của khách hàng chính là tương lai của ChronoLux. Đó cũng là giá trị cốt lõi gắn liền với truyền thống, uy tín và thương hiệu của chúng tôi tại TP. Hồ Chí Minh.
+
+ChronoLux cam kết:
+- Bảo hành 2 năm.
+- Miễn phí thay pin 10 năm.
+- Giá cả ổn định và minh bạch.`,
     updatedAt: "2026-03-11T00:00:00.000Z",
   },
   {
     id: "terms",
-    title: "Điều khoản dịch vụ",
-    content:
-      "Khi sử dụng website, khách hàng đồng ý với các điều khoản về thanh toán, vận chuyển, bảo mật thông tin và chính sách hậu mãi.",
+    title: "Điều khoản thanh toán",
+    content: `A. THANH TOÁN
+
+I. Thanh toán bằng tiền mặt
+1) Mua tại cửa hàng:
+Khách hàng thanh toán trực tiếp bằng tiền mặt tại cửa hàng ChronoLux.
+
+2) Mua online:
+Khách hàng thanh toán cho nhân viên giao hàng của ChronoLux hoặc đơn vị vận chuyển được chỉ định.
+
+II. Thanh toán bằng thẻ ATM, VISA, MASTERCARD, JCB
+1) Mua tại cửa hàng:
+Khách hàng có thể quẹt thẻ trực tiếp tại cửa hàng ChronoLux.
+
+2) Mua online:
+Vui lòng thông báo trước nhu cầu thanh toán thẻ.
+Hình thức quẹt thẻ online chỉ áp dụng với nhân viên giao hàng của ChronoLux.
+
+III. Thanh toán bằng chuyển khoản
+Thông tin tài khoản:
+- Ngân hàng: Techcombank.
+- Chủ tài khoản: LE NGUYEN DANG KHOA.
+- Số tài khoản: 1XXXXXXXXXXX.
+- Nội dung: Tên khách hàng - Số điện thoại.
+
+Lưu ý: Ưu tiên chuyển khoản nhanh 24/7 để hệ thống xác nhận giao dịch sớm hơn.
+
+B. TRẢ GÓP
+ChronoLux hỗ trợ 01 hình thức trả góp qua thẻ tín dụng:
+1) Mua tại cửa hàng: được áp dụng.
+2) Mua online: chưa áp dụng.
+
+C. CHÍNH SÁCH HOÀN TIỀN KHI THANH TOÁN TRỰC TUYẾN
+Nếu thanh toán thành công nhưng phát sinh dư tiền hoặc trả hàng:
+- Thẻ ATM: hoàn tiền trong tối đa 03 ngày làm việc.
+- Thẻ VISA/MASTERCARD/JCB: hoàn tiền trong tối đa 05 ngày làm việc.
+
+Nếu quá thời hạn trên chưa nhận được tiền, vui lòng liên hệ ChronoLux để được hỗ trợ đối soát với ngân hàng.`,
     updatedAt: "2026-03-11T00:00:00.000Z",
   },
   {
     id: "privacy",
-    title: "Chính sách bảo mật",
-    content:
-      "Chúng tôi chỉ thu thập dữ liệu cần thiết để xử lý đơn hàng và nâng cao trải nghiệm, không chia sẻ thông tin cho bên thứ ba trái phép.",
+    title: "Bảo vệ thông tin cá nhân khách hàng",
+    content: `1. Mục đích thu thập thông tin cá nhân
+Thông tin thu thập bao gồm: họ tên, địa chỉ giao hàng, số điện thoại.
+
+Với giao dịch thanh toán trực tuyến, ChronoLux không lưu thông tin số tài khoản hoặc số thẻ ngân hàng. Dữ liệu này do cổng thanh toán lưu trữ để phục vụ đối soát.
+
+2. Phạm vi sử dụng thông tin
+Thông tin khách hàng được sử dụng để:
+- Giao hàng theo đơn đặt mua.
+- Gửi thông báo về trạng thái đơn hàng.
+- Hỗ trợ khách hàng khi cần.
+- Cung cấp thông tin sản phẩm và xử lý yêu cầu mua hàng.
+
+3. Thời gian lưu trữ thông tin
+Thông tin cá nhân được lưu trữ cho đến khi khách hàng yêu cầu xóa.
+
+4. Tổ chức có thể tiếp cận thông tin
+Thông tin được sử dụng nội bộ tại ChronoLux. Trong quá trình giao hàng, tên và địa chỉ có thể được chia sẻ cho đối tác vận chuyển uy tín (GHTK, GHN, Viettel Post, ...).`,
     updatedAt: "2026-03-11T00:00:00.000Z",
   },
   {
     id: "return-policy",
     title: "Chính sách đổi trả và bảo hành",
-    content:
-      "Hỗ trợ đổi trả theo điều kiện hãng và bảo hành chính hãng theo thời hạn trên thẻ bảo hành hoặc hóa đơn mua hàng.",
+    content: `Trong vòng 07 ngày kể từ ngày mua hàng, khách hàng có thể yêu cầu đổi sản phẩm miễn phí.
+Thời hạn 07 ngày được tính theo dấu bưu điện (nếu gửi hàng) hoặc thời điểm cửa hàng tiếp nhận yêu cầu trực tiếp.
+
+Lưu ý quan trọng
+1) Chỉ chấp nhận đổi 01 lần duy nhất, sản phẩm đổi có giá bằng hoặc cao hơn.
+2) Sản phẩm cần còn mới, chưa qua sử dụng; trường hợp lỗi nhà sản xuất sẽ được hỗ trợ theo quy định.
+3) Khách đã thử sản phẩm trực tiếp tại cửa hàng và đã được hướng dẫn đầy đủ có thể không thuộc đối tượng áp dụng đổi trả.
+
+Điều kiện đổi sản phẩm
+- Gửi yêu cầu trong vòng 07 ngày kể từ ngày nhận hàng.
+- Đồng hồ chưa qua sử dụng, còn seal và lớp bảo vệ.
+- Không trầy xước, móp méo, không có dấu hiệu sử dụng.
+- Đầy đủ phụ kiện, linh kiện, hướng dẫn, quà tặng kèm (nếu có).
+- Hộp đựng và bao bì còn nguyên vẹn.
+
+Chính sách bảo hành
+Điều kiện được bảo hành:
+- Phiếu bảo hành hợp lệ, thông tin đầy đủ, còn thời hạn.
+- Bảo hành/sửa chữa linh kiện hỏng hóc kỹ thuật, không đổi ngang sản phẩm mới.
+
+Điều kiện không được bảo hành:
+- Hư hỏng do sử dụng sai cách, va đập, tai nạn, lão hóa tự nhiên.
+- Hư hỏng do thao tác sai khi sử dụng dưới nước hoặc điều chỉnh sai quy cách.
+- Trầy xước, vỡ mặt kính, hư hỏng ngoại quan do quá trình sử dụng.
+- Tự ý mở máy hoặc sửa chữa tại đơn vị không thuộc hệ thống bảo hành.`,
     updatedAt: "2026-03-11T00:00:00.000Z",
   },
 ];

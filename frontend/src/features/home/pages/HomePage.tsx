@@ -347,12 +347,12 @@ export const HomePage = () => {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Button variant="luxury" asChild>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer">
+              <a href="https://www.facebook.com/khoa.ang.900076/" target="_blank" rel="noreferrer">
                 Tư vấn qua Facebook
               </a>
             </Button>
             <Button variant="outline" asChild>
-              <a href="https://zalo.me" target="_blank" rel="noreferrer">
+              <a href="https://zalo.me/0824262709" target="_blank" rel="noreferrer">
                 Tư vấn qua Zalo
               </a>
             </Button>

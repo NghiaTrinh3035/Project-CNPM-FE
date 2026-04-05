@@ -24,7 +24,7 @@ export const StaticContentPage = ({ pageId }: { pageId: StaticPageContent["id"] 
       <p className="text-xs uppercase tracking-[0.25em] text-luxury-gold">ChronoLux Policy</p>
       <h1 className="font-display text-4xl">{query.data.title}</h1>
       <div className="rounded-2xl border border-border/60 bg-card/40 p-6">
-        <p className="leading-7 text-muted-foreground">{query.data.content}</p>
+        <div className="whitespace-pre-line leading-7 text-muted-foreground">{query.data.content}</div>
       </div>
     </section>
   );

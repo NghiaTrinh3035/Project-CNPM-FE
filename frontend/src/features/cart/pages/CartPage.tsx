@@ -149,6 +149,7 @@ export const CartPage = () => {
   const subtotal = selectedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   const appliedVoucher = cart.voucherCode;
   const discountPercent = Math.max(0, cart.voucherDiscountPercent ?? 0);
+  const hasAppliedVoucher = Boolean(appliedVoucher && discountPercent > 0);
   const discount = subtotal * (discountPercent / 100);
   const total = subtotal - discount;
   const allSelected = cart.items.length > 0 && selectedItems.length === cart.items.length;
@@ -258,7 +259,7 @@ export const CartPage = () => {
               value={voucher}
               onChange={(event) => setVoucher(event.target.value)}
             />
-            {appliedVoucher ? (
+            {hasAppliedVoucher ? (
               <p className="text-xs text-emerald-500">Đã áp dụng: {appliedVoucher} ({discountPercent}%)</p>
             ) : null}
             <Button

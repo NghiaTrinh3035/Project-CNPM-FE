@@ -2,6 +2,7 @@ import axios from "axios";
 
 import axiosClient from "@/api/axiosClient";
 import { cartService } from "@/services/cartService";
+import { productService } from "@/services/productService";
 import { mapBackendOrder, unwrapPage } from "@/services/api/backendMappers";
 import type { Order, OrderCancellationReason, OrderStatus, ShippingAddress } from "@/shared/types/domain";
 
@@ -66,10 +67,43 @@ const extractErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const hydrateOrderItemImages = async (order: Order): Promise<Order> => {
+  const itemIdsNeedingImage = Array.from(
+    new Set(order.items.filter((item) => !item.productImage).map((item) => item.productId).filter(Boolean)),
+  );
+
+  if (!itemIdsNeedingImage.length) {
+    return order;
+  }
+
+  const products = await productService.getByIds(itemIdsNeedingImage);
+  const imageByProductId = new Map(
+    products
+      .map((product) => [product.id, product.images.find((image) => image.isPrimary)?.url ?? product.images[0]?.url ?? ""])
+      .filter((entry): entry is [string, string] => Boolean(entry[0] && entry[1])),
+  );
+
+  return {
+    ...order,
+    items: order.items.map((item) => ({
+      ...item,
+      productImage: item.productImage || imageByProductId.get(item.productId) || item.productImage,
+    })),
+  };
+};
+
 const buildOrderPayload = async (input: { userId: string; address: ShippingAddress; note?: string }) => {
   const cart = await cartService.getCart(input.userId);
   if (!cart || cart.items.length === 0) {
     throw new Error("Giỏ hàng đang trống.");
+  }
+
+  const selectedItemIds = cartService.getSelectedItemIds(input.userId);
+  const selectedItemSet = new Set(selectedItemIds);
+  const checkoutItems = cart.items.filter((item) => (selectedItemSet.size > 0 ? selectedItemSet.has(item.id) : true));
+
+  if (checkoutItems.length === 0) {
+    throw new Error("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
   }
 
   return {
@@ -77,7 +111,7 @@ const buildOrderPayload = async (input: { userId: string; address: ShippingAddre
     note: normalizeNote(input.note),
     shippingAddress: buildShippingAddress(input.address),
     voucherCode: cart.voucherCode ?? null,
-    items: cart.items.map((item) => ({
+    items: checkoutItems.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
     })),
@@ -180,7 +214,8 @@ export const orderService = {
   async getOrderById(orderId: string): Promise<Order | null> {
     try {
       const { data } = await axiosClient.get(`/orders/${orderId}`);
-      return mapBackendOrder(data);
+      const mapped = mapBackendOrder(data);
+      return await hydrateOrderItemImages(mapped);
     } catch (error) {
       throw new Error(extractErrorMessage(error, "Không thể tải chi tiết đơn hàng."));
     }

@@ -11,7 +11,6 @@ import { warrantyService } from "@/services/warrantyService";
 import { useSession } from "@/shared/hooks/useSession";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 
@@ -19,7 +18,6 @@ const schema = z.object({
   orderId: z.string().min(1, "Vui lòng chọn đơn hàng."),
   orderItemId: z.string().min(1, "Vui lòng chọn sản phẩm."),
   description: z.string().min(10, "Mô tả lỗi tối thiểu 10 ký tự."),
-  imageUrl: z.string().optional(),
 });
 
 type WarrantyValues = z.infer<typeof schema>;
@@ -34,7 +32,6 @@ export const NewWarrantyPage = () => {
       orderId: "",
       orderItemId: "",
       description: "",
-      imageUrl: "",
     },
   });
 
@@ -83,7 +80,6 @@ export const NewWarrantyPage = () => {
         orderId: values.orderId,
         orderItemId: values.orderItemId,
         issueDescription: values.description,
-        images: values.imageUrl ? [values.imageUrl] : [],
       });
     },
     onSuccess: () => {
@@ -147,10 +143,6 @@ export const NewWarrantyPage = () => {
             {form.formState.errors.description ? (
               <p className="text-xs text-red-500">{form.formState.errors.description.message}</p>
             ) : null}
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Ảnh đính kèm (mock URL)</label>
-            <Input {...form.register("imageUrl")} placeholder="https://..." />
           </div>
           <Button type="submit" variant="luxury" disabled={createMutation.isPending}>
             Gửi yêu cầu
