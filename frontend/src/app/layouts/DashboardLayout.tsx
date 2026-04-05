@@ -1,4 +1,4 @@
-﻿import { BarChart3, FileText, LayoutDashboard, PackageSearch, ShieldCheck, Tag, Ticket, Truck, Users } from "lucide-react";
+import { FileText, LayoutDashboard, PackageSearch, ShieldCheck, Tag, Ticket, Truck, Users } from "lucide-react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { NotificationDropdown } from "@/shared/components/common/NotificationDropdown";
@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 }
 
 const staffMenu = [
-  { to: ROUTES.staff.dashboard, label: "Tổng quan", icon: LayoutDashboard },
+  { to: ROUTES.staff.dashboard, label: "Báo Cáo", icon: LayoutDashboard },
   { to: ROUTES.staff.orders, label: "Quản lý đơn", icon: Truck },
   { to: ROUTES.staff.warranties, label: "Bảo hành", icon: ShieldCheck },
   { to: ROUTES.staff.categories, label: "Danh mục", icon: Tag },
@@ -24,7 +24,7 @@ const staffMenu = [
 ];
 
 const ownerMenu = [
-  { to: ROUTES.owner.dashboard, label: "Tổng quan", icon: LayoutDashboard },
+  { to: ROUTES.owner.dashboard, label: "Báo Cáo", icon: LayoutDashboard },
   { to: ROUTES.owner.products, label: "Sản phẩm", icon: PackageSearch },
   { to: ROUTES.owner.categories, label: "Danh mục", icon: Tag },
   { to: ROUTES.owner.suppliers, label: "Nhà cung cấp", icon: Users },
@@ -33,7 +33,6 @@ const ownerMenu = [
   { to: ROUTES.owner.warranties, label: "Bảo hành", icon: ShieldCheck },
   { to: ROUTES.owner.staff, label: "Nhân viên", icon: Users },
   { to: ROUTES.owner.vouchers, label: "Voucher", icon: Ticket },
-  { to: ROUTES.owner.reports, label: "Báo cáo", icon: BarChart3 },
   { to: ROUTES.owner.content, label: "Nội dung tĩnh", icon: FileText },
 ];
 
@@ -47,7 +46,9 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-72 border-r border-border/60 bg-card/40 p-6 lg:block">
         <p className="text-xs uppercase tracking-[0.3em] text-luxury-gold">ChronoLux Console</p>
-        <h2 className="mt-2 font-display text-2xl">{role === "OWNER" ? "Bảng điều khiển Chủ cửa hàng" : "Bảng điều khiển Nhân viên"}</h2>
+        <h2 className="mt-2 font-display text-2xl">
+          {role === "OWNER" ? "Bảng điều khiển Chủ cửa hàng" : "Bảng điều khiển Nhân viên"}
+        </h2>
         <nav className="mt-8 space-y-1">
           {menu.map((item) => (
             <NavLink

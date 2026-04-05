@@ -8,6 +8,7 @@ import type {
   WarrantyStatusUpdatePayload,
 } from "@/features/warranty/types/warrantyAdmin";
 import { getDb } from "@/mocks/data/database";
+import { reportApi } from "@/services/api/reportApi";
 import { warrantyApi } from "@/services/api/warrantyApi";
 import { productApi, type ProductCreateRequest, type ProductUpdateRequest } from "@/services/api/productApi";
 import { mapBackendCategory, mapBackendProduct, mapBackendSupplier, mapBackendUser, mapBackendVoucher, unwrapPage } from "@/services/api/backendMappers";
@@ -1007,12 +1008,16 @@ export const adminService = {
   },
 
   async listReports(): Promise<RevenueReport[]> {
-    const orders = await orderService.getAllOrders().catch(() => []);
-    if (orders.length) {
-      return buildReports(orders);
+    try {
+      return await reportApi.getRevenue();
+    } catch {
+      const orders = await orderService.getAllOrders().catch(() => []);
+      if (orders.length) {
+        return buildReports(orders);
+      }
+      await delay(120);
+      return getDb().revenueReports;
     }
-    await delay(120);
-    return getDb().revenueReports;
   },
 
   async listStaticPages(): Promise<StaticPageContent[]> {
