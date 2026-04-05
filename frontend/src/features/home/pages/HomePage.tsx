@@ -41,6 +41,7 @@ export const HomePage = () => {
   const { user } = useSession();
   const compareAdd = useCompareStore((state) => state.add);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
   const featuredQuery = useQuery({
     queryKey: ["home", "featured"],
@@ -79,6 +80,16 @@ export const HomePage = () => {
   const featuredProducts = (featuredQuery.data ?? []).map(applyAverageRating);
   const bestSellerProducts = (bestSellerQuery.data ?? []).map(applyAverageRating);
   const newArrivalProducts = (newArrivalsQuery.data ?? []).map(applyAverageRating);
+  const matchesSelectedBrand = <T extends { brand?: string }>(product: T) => {
+    if (!selectedBrand) {
+      return true;
+    }
+    return (product.brand ?? "").trim().toLowerCase() === selectedBrand.toLowerCase();
+  };
+
+  const filteredFeaturedProducts = featuredProducts.filter(matchesSelectedBrand);
+  const filteredBestSellerProducts = bestSellerProducts.filter(matchesSelectedBrand);
+  const filteredNewArrivalProducts = newArrivalProducts.filter(matchesSelectedBrand);
 
   const addCartMutation = useMutation({
     mutationFn: (productId: string) => {
@@ -103,11 +114,26 @@ export const HomePage = () => {
 
       <section className="border-b border-border/50 py-6">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-6 px-4 md:px-6">
-          {brands.map((brand) => (
-            <span key={brand} className="font-display text-lg text-muted-foreground/90">
-              {brand}
-            </span>
-          ))}
+          <Button
+            variant={selectedBrand === null ? "luxury" : "ghost"}
+            className="font-display text-lg"
+            onClick={() => setSelectedBrand(null)}
+          >
+            Tất cả
+          </Button>
+          {brands.map((brand) => {
+            const isActive = selectedBrand === brand;
+            return (
+              <Button
+                key={brand}
+                variant={isActive ? "luxury" : "ghost"}
+                className="font-display text-lg"
+                onClick={() => setSelectedBrand(brand)}
+              >
+                {brand}
+              </Button>
+            );
+          })}
         </div>
       </section>
 
@@ -121,17 +147,23 @@ export const HomePage = () => {
           <ProductGridSkeleton />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={(id) => addCartMutation.mutate(id)}
-                onCompare={(id) => {
-                  compareAdd(id);
-                  toast.success("Đã thêm vào danh sách so sánh.");
-                }}
-              />
-            ))}
+            {filteredFeaturedProducts.length === 0 ? (
+              <p className="sm:col-span-2 lg:col-span-4 text-sm text-muted-foreground">
+                Không có sản phẩm phù hợp với thương hiệu đang chọn.
+              </p>
+            ) : (
+              filteredFeaturedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={(id) => addCartMutation.mutate(id)}
+                  onCompare={(id) => {
+                    compareAdd(id);
+                    toast.success("Đã thêm vào danh sách so sánh.");
+                  }}
+                />
+              ))
+            )}
           </div>
         )}
       </section>
@@ -146,14 +178,20 @@ export const HomePage = () => {
           <ProductGridSkeleton count={4} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {bestSellerProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={(id) => addCartMutation.mutate(id)}
-                onCompare={compareAdd}
-              />
-            ))}
+            {filteredBestSellerProducts.length === 0 ? (
+              <p className="sm:col-span-2 lg:col-span-4 text-sm text-muted-foreground">
+                Không có sản phẩm phù hợp với thương hiệu đang chọn.
+              </p>
+            ) : (
+              filteredBestSellerProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={(id) => addCartMutation.mutate(id)}
+                  onCompare={compareAdd}
+                />
+              ))
+            )}
           </div>
         )}
       </section>
@@ -169,14 +207,20 @@ export const HomePage = () => {
             <ProductGridSkeleton count={4} />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {newArrivalProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={(id) => addCartMutation.mutate(id)}
-                  onCompare={compareAdd}
-                />
-              ))}
+              {filteredNewArrivalProducts.length === 0 ? (
+                <p className="sm:col-span-2 lg:col-span-4 text-sm text-muted-foreground">
+                  Không có sản phẩm phù hợp với thương hiệu đang chọn.
+                </p>
+              ) : (
+                filteredNewArrivalProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={(id) => addCartMutation.mutate(id)}
+                    onCompare={compareAdd}
+                  />
+                ))
+              )}
             </div>
           )}
         </div>

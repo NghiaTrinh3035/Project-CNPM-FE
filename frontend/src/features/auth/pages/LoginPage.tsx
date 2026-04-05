@@ -111,10 +111,6 @@ export const LoginPage = () => {
         <Button type="submit" className="w-full" variant="luxury" disabled={loginMutation.isPending}>
           {loginMutation.isPending ? "Đang đăng nhập..." : "Đăng nhập"}
         </Button>
-
-        <Button type="button" variant="outline" className="w-full">
-          Đăng nhập bằng Google (UI Placeholder)
-        </Button>
       </form>
     </AuthShell>
   );
