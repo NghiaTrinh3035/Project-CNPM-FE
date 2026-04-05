@@ -4,6 +4,7 @@ import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis
 import { toast } from "sonner";
 
 import { adminService } from "@/services/adminService";
+import { reportApi } from "@/services/api/reportApi";
 import { orderService } from "@/services/orderService";
 import { toCurrency } from "@/shared/lib/format";
 import { Button } from "@/shared/ui/button";
@@ -21,7 +22,7 @@ const statusColor: Record<string, string> = {
 export const OwnerReportsPage = () => {
   const reportsQuery = useQuery({
     queryKey: ["owner-report-revenue"],
-    queryFn: adminService.listReports,
+    queryFn: () => reportApi.getRevenue(),
   });
   const ordersQuery = useQuery({
     queryKey: ["owner-report-orders"],
@@ -29,7 +30,7 @@ export const OwnerReportsPage = () => {
   });
   const overviewQuery = useQuery({
     queryKey: ["owner-report-overview"],
-    queryFn: adminService.getOwnerOverview,
+    queryFn: () => reportApi.getOwnerOverview(),
   });
   const customersQuery = useQuery({
     queryKey: ["owner-report-customers"],
