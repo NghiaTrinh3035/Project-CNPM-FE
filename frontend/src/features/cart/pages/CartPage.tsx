@@ -21,6 +21,7 @@ export const CartPage = () => {
   const queryClient = useQueryClient();
   const [voucher, setVoucher] = useState("");
   const [cartNote, setCartNote] = useState("");
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) {
@@ -65,7 +66,8 @@ export const CartPage = () => {
   const voucherMutation = useMutation({
     mutationFn: (code: string) =>
       user ? cartService.applyVoucher(user.id, code) : Promise.reject(new Error("Chưa đăng nhập.")),
-    onSuccess: () => {
+    onSuccess: (_cart, code) => {
+      setVoucher(code.trim().toUpperCase());
       invalidate();
       toast.success("Áp dụng voucher thành công.");
     },
@@ -75,6 +77,29 @@ export const CartPage = () => {
   const cart = cartQuery.data;
   const products = productQuery.data ?? [];
   const productMap = new Map(products.map((item) => [item.id, item]));
+  const cartItemIdsKey = cart?.items.map((item) => item.id).join(",") ?? "";
+
+  useEffect(() => {
+    if (!user || !cart) {
+      setSelectedItemIds([]);
+      return;
+    }
+
+    const cartItemIds = cart.items.map((item) => item.id);
+    const cartItemSet = new Set(cartItemIds);
+    const savedSelection = cartService.getSelectedItemIds(user.id).filter((itemId) => cartItemSet.has(itemId));
+    const nextSelection = savedSelection.length > 0 ? savedSelection : cartItemIds;
+
+    setSelectedItemIds(nextSelection);
+    cartService.setSelectedItemIds(user.id, nextSelection);
+  }, [user?.id, cartItemIdsKey]);
+
+  const updateSelection = (nextItemIds: string[]) => {
+    setSelectedItemIds(nextItemIds);
+    if (user) {
+      cartService.setSelectedItemIds(user.id, nextItemIds);
+    }
+  };
 
   const handleQuantityChange = (itemId: string, currentQuantity: number, nextQuantity: number, productId: string) => {
     const product = productMap.get(productId);
@@ -97,8 +122,13 @@ export const CartPage = () => {
   };
 
   const handleCheckout = () => {
+    if (selectedItems.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+      return;
+    }
     if (user) {
       cartService.setCheckoutNote(user.id, cartNote);
+      cartService.setSelectedItemIds(user.id, selectedItems.map((item) => item.id));
     }
     navigate(ROUTES.customer.checkout);
   };
@@ -114,15 +144,14 @@ export const CartPage = () => {
     );
   }
 
-  const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const appliedVoucher = voucher ? voucher : cart.voucherCode;
-  const discount =
-    appliedVoucher?.toUpperCase() === "WELCOME5"
-      ? subtotal * 0.05
-      : appliedVoucher?.toUpperCase() === "LUXURY10"
-        ? subtotal * 0.1
-        : 0;
+  const selectedItemSet = new Set(selectedItemIds);
+  const selectedItems = cart.items.filter((item) => selectedItemSet.has(item.id));
+  const subtotal = selectedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const appliedVoucher = cart.voucherCode;
+  const discountPercent = Math.max(0, cart.voucherDiscountPercent ?? 0);
+  const discount = subtotal * (discountPercent / 100);
   const total = subtotal - discount;
+  const allSelected = cart.items.length > 0 && selectedItems.length === cart.items.length;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -131,6 +160,22 @@ export const CartPage = () => {
           <CardTitle>Giỏ hàng của bạn</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-border bg-background accent-luxury-gold"
+                checked={allSelected}
+                onChange={(event) =>
+                  updateSelection(event.target.checked ? cart.items.map((item) => item.id) : [])
+                }
+              />
+              <span>Chọn tất cả</span>
+            </label>
+            <span className="text-muted-foreground">
+              Đã chọn {selectedItems.length}/{cart.items.length}
+            </span>
+          </div>
           {cart.items.map((item) => {
             const product = productMap.get(item.productId);
             if (!product) {
@@ -138,6 +183,20 @@ export const CartPage = () => {
             }
             return (
               <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-border/60 p-4 sm:flex-row sm:items-center">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-border bg-background accent-luxury-gold"
+                    checked={selectedItemSet.has(item.id)}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        updateSelection([...selectedItemIds, item.id]);
+                      } else {
+                        updateSelection(selectedItemIds.filter((selectedId) => selectedId !== item.id));
+                      }
+                    }}
+                  />
+                </label>
                 <img src={product.images[0]?.url} alt={product.name} className="h-24 w-full rounded-lg object-cover sm:w-24" />
                 <div className="flex-1 space-y-1">
                   <Link to={`/products/${product.id}`} className="font-medium hover:text-luxury-gold">
@@ -189,14 +248,25 @@ export const CartPage = () => {
             <span>Tổng thanh toán</span>
             <span className="text-luxury-gold">{toCurrency(total)}</span>
           </div>
+          {selectedItems.length === 0 ? (
+            <p className="text-xs text-amber-500">Chưa chọn sản phẩm nào để thanh toán.</p>
+          ) : null}
 
           <div className="space-y-2 pt-2">
             <Input
-              placeholder="Nhập mã voucher (WELCOME5 / LUXURY10)"
+              placeholder="Nhập mã voucher"
               value={voucher}
               onChange={(event) => setVoucher(event.target.value)}
             />
-            <Button variant="outline" className="w-full" onClick={() => voucherMutation.mutate(voucher)}>
+            {appliedVoucher ? (
+              <p className="text-xs text-emerald-500">Đã áp dụng: {appliedVoucher} ({discountPercent}%)</p>
+            ) : null}
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={!voucher.trim() || voucherMutation.isPending}
+              onClick={() => voucherMutation.mutate(voucher.trim())}
+            >
               Áp dụng mã giảm giá
             </Button>
           </div>
@@ -216,7 +286,7 @@ export const CartPage = () => {
             />
           </div>
 
-          <Button className="w-full" variant="luxury" onClick={handleCheckout}>
+          <Button className="w-full" variant="luxury" onClick={handleCheckout} disabled={selectedItems.length === 0}>
             Tiến hành thanh toán
           </Button>
         </CardContent>

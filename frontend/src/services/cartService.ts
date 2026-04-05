@@ -7,7 +7,9 @@ import { delay } from "@/services/mock/delay";
 import type { Cart, CartItem } from "@/shared/types/domain";
 
 const CART_VOUCHER_STORAGE_KEY = "chrono-cart-voucher-map";
+const CART_VOUCHER_DISCOUNT_STORAGE_KEY = "chrono-cart-voucher-discount-map";
 const CART_NOTE_STORAGE_KEY = "chrono-cart-note-map";
+const CART_SELECTED_ITEMS_STORAGE_KEY = "chrono-cart-selected-items-map";
 
 const readVoucherMap = (): Record<string, string> => {
   try {
@@ -35,12 +37,71 @@ const readNoteMap = (): Record<string, string> => {
   }
 };
 
+const readSelectedItemsMap = (): Record<string, string[]> => {
+  try {
+    const raw = localStorage.getItem(CART_SELECTED_ITEMS_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+
+    const result: Record<string, string[]> = {};
+    Object.entries(parsed).forEach(([userId, value]) => {
+      if (!Array.isArray(value)) {
+        return;
+      }
+      result[userId] = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+    });
+    return result;
+  } catch {
+    return {};
+  }
+};
+
 const voucherByUser: Record<string, string> = readVoucherMap();
+
+const readVoucherDiscountMap = (): Record<string, number> => {
+  try {
+    const raw = localStorage.getItem(CART_VOUCHER_DISCOUNT_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+
+    const result: Record<string, number> = {};
+    Object.entries(parsed).forEach(([userId, value]) => {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        result[userId] = numeric;
+      }
+    });
+    return result;
+  } catch {
+    return {};
+  }
+};
+
+const voucherDiscountByUser: Record<string, number> = readVoucherDiscountMap();
 const noteByUser: Record<string, string> = readNoteMap();
+const selectedItemsByUser: Record<string, string[]> = readSelectedItemsMap();
 
 const persistVoucherMap = () => {
   try {
     localStorage.setItem(CART_VOUCHER_STORAGE_KEY, JSON.stringify(voucherByUser));
+  } catch {
+    // Ignore storage issues and keep runtime map.
+  }
+};
+
+const persistVoucherDiscountMap = () => {
+  try {
+    localStorage.setItem(CART_VOUCHER_DISCOUNT_STORAGE_KEY, JSON.stringify(voucherDiscountByUser));
   } catch {
     // Ignore storage issues and keep runtime map.
   }
@@ -54,16 +115,32 @@ const persistNoteMap = () => {
   }
 };
 
-const setVoucherForUser = (userId: string, voucherCode?: string) => {
+const persistSelectedItemsMap = () => {
+  try {
+    localStorage.setItem(CART_SELECTED_ITEMS_STORAGE_KEY, JSON.stringify(selectedItemsByUser));
+  } catch {
+    // Ignore storage issues and keep runtime map.
+  }
+};
+
+const setVoucherForUser = (userId: string, voucherCode?: string, discountPercent?: number) => {
   if (!voucherCode) {
     delete voucherByUser[userId];
+    delete voucherDiscountByUser[userId];
   } else {
     voucherByUser[userId] = voucherCode;
+    if (discountPercent && Number.isFinite(discountPercent) && discountPercent > 0) {
+      voucherDiscountByUser[userId] = discountPercent;
+    } else {
+      delete voucherDiscountByUser[userId];
+    }
   }
   persistVoucherMap();
+  persistVoucherDiscountMap();
 };
 
 const getVoucherForUser = (userId: string) => voucherByUser[userId];
+const getVoucherDiscountForUser = (userId: string) => voucherDiscountByUser[userId];
 
 const setNoteForUser = (userId: string, note: string) => {
   const normalized = note.trim();
@@ -77,6 +154,25 @@ const setNoteForUser = (userId: string, note: string) => {
 
 const getNoteForUser = (userId: string) => noteByUser[userId] ?? "";
 
+const setSelectedItemsForUser = (userId: string, itemIds: string[]) => {
+  const normalized = Array.from(
+    new Set(
+      itemIds
+        .map((itemId) => itemId.trim())
+        .filter((itemId) => itemId.length > 0),
+    ),
+  );
+
+  if (normalized.length === 0) {
+    delete selectedItemsByUser[userId];
+  } else {
+    selectedItemsByUser[userId] = normalized;
+  }
+  persistSelectedItemsMap();
+};
+
+const getSelectedItemsForUser = (userId: string) => selectedItemsByUser[userId] ?? [];
+
 const findOrCreateMockCart = (userId: string): Cart => {
   const db = getDb();
   let cart = db.carts.find((item) => item.userId === userId);
@@ -85,16 +181,25 @@ const findOrCreateMockCart = (userId: string): Cart => {
       id: `c-${Date.now()}`,
       userId,
       items: [],
+      voucherCode: getVoucherForUser(userId),
+      voucherDiscountPercent: getVoucherDiscountForUser(userId),
       updatedAt: new Date().toISOString(),
     };
     db.carts.push(cart);
   }
+
+  cart.voucherCode = getVoucherForUser(userId);
+  cart.voucherDiscountPercent = getVoucherDiscountForUser(userId);
   return cart;
 };
 
 const getCartFromApi = async (userId: string): Promise<Cart> => {
   const { data } = await axiosClient.get(`/cart/${userId}`);
-  return mapBackendCart(data, { userId, voucherCode: getVoucherForUser(userId) });
+  return mapBackendCart(data, {
+    userId,
+    voucherCode: getVoucherForUser(userId),
+    voucherDiscountPercent: getVoucherDiscountForUser(userId),
+  });
 };
 
 const getCartSafe = async (userId: string): Promise<Cart> => {
@@ -129,6 +234,7 @@ const updateMockItemByProduct = (userId: string, productId: string, quantity: nu
   }
   cart.updatedAt = new Date().toISOString();
   cart.voucherCode = getVoucherForUser(userId);
+  cart.voucherDiscountPercent = getVoucherDiscountForUser(userId);
   return structuredClone(cart);
 };
 
@@ -174,7 +280,11 @@ export const cartService = {
       const { data } = await axiosClient.post(`/cart/${userId}/items`, null, {
         params: { productId, quantity },
       });
-      return mapBackendCart(data, { userId, voucherCode: getVoucherForUser(userId) });
+      return mapBackendCart(data, {
+        userId,
+        voucherCode: getVoucherForUser(userId),
+        voucherDiscountPercent: getVoucherDiscountForUser(userId),
+      });
     } catch (error) {
       if (!shouldFallbackToMock(error)) {
         throw new Error(toErrorMessage(error, "Không thể thêm sản phẩm vào giỏ hàng."));
@@ -208,6 +318,7 @@ export const cartService = {
       }
       cart.updatedAt = new Date().toISOString();
       cart.voucherCode = getVoucherForUser(userId);
+      cart.voucherDiscountPercent = getVoucherDiscountForUser(userId);
       return structuredClone(cart);
     }
   },
@@ -218,7 +329,11 @@ export const cartService = {
       const { data } = await axiosClient.put(`/cart/${userId}/items/${productId}`, null, {
         params: { quantity },
       });
-      return mapBackendCart(data, { userId, voucherCode: getVoucherForUser(userId) });
+      return mapBackendCart(data, {
+        userId,
+        voucherCode: getVoucherForUser(userId),
+        voucherDiscountPercent: getVoucherDiscountForUser(userId),
+      });
     } catch (error) {
       if (!shouldFallbackToMock(error)) {
         throw new Error(toErrorMessage(error, "Không thể cập nhật số lượng sản phẩm."));
@@ -233,7 +348,11 @@ export const cartService = {
     const productId = await resolveProductId(userId, itemId);
     try {
       const { data } = await axiosClient.delete(`/cart/${userId}/items/${productId}`);
-      return mapBackendCart(data, { userId, voucherCode: getVoucherForUser(userId) });
+      return mapBackendCart(data, {
+        userId,
+        voucherCode: getVoucherForUser(userId),
+        voucherDiscountPercent: getVoucherDiscountForUser(userId),
+      });
     } catch (error) {
       if (!shouldFallbackToMock(error)) {
         throw new Error(toErrorMessage(error, "Không thể xóa sản phẩm khỏi giỏ hàng."));
@@ -249,10 +368,12 @@ export const cartService = {
     const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     let minOrderAmount = 0;
     let code = voucherCode.toUpperCase();
+    let discountPercent = 0;
     try {
       const { data } = await axiosClient.post(`/vouchers/apply/${encodeURIComponent(voucherCode)}`);
       minOrderAmount = Number((data as { minOrderAmount?: number }).minOrderAmount ?? 0);
-      code = ((data as { voucherCode?: string }).voucherCode ?? voucherCode).toUpperCase();
+      code = ((data as { voucherCode?: string; code?: string }).voucherCode ?? (data as { code?: string }).code ?? voucherCode).toUpperCase();
+      discountPercent = Number((data as { discountPercent?: number }).discountPercent ?? 0);
     } catch (error) {
       throw error instanceof Error ? error : new Error("Không thể áp dụng voucher. Vui lòng thử lại.");
     }
@@ -261,8 +382,12 @@ export const cartService = {
       throw new Error("Đơn hàng chưa đạt mức áp dụng voucher.");
     }
 
-    setVoucherForUser(userId, code);
-    return { ...cart, voucherCode: code, updatedAt: new Date().toISOString() };
+    if (!Number.isFinite(discountPercent) || discountPercent <= 0) {
+      throw new Error("Voucher không hợp lệ.");
+    }
+
+    setVoucherForUser(userId, code, discountPercent);
+    return { ...cart, voucherCode: code, voucherDiscountPercent: discountPercent, updatedAt: new Date().toISOString() };
   },
 
   async clearCart(userId: string, options?: { restock?: boolean }) {
@@ -282,6 +407,7 @@ export const cartService = {
       const cart = findOrCreateMockCart(userId);
       cart.items = [];
       cart.voucherCode = undefined;
+      cart.voucherDiscountPercent = undefined;
       cart.updatedAt = new Date().toISOString();
     }
   },
@@ -292,5 +418,17 @@ export const cartService = {
 
   setCheckoutNote(userId: string, note: string) {
     setNoteForUser(userId, note);
+  },
+
+  getSelectedItemIds(userId: string) {
+    return getSelectedItemsForUser(userId);
+  },
+
+  setSelectedItemIds(userId: string, itemIds: string[]) {
+    setSelectedItemsForUser(userId, itemIds);
+  },
+
+  clearSelectedItemIds(userId: string) {
+    setSelectedItemsForUser(userId, []);
   },
 };
