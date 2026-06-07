@@ -22,6 +22,7 @@ export const ROUTES = {
     notifications: "/notifications",
     cart: "/cart",
     checkout: "/checkout",
+    checkoutResult: "/order/checkout/result",
     orders: "/orders",
     orderDetail: "/orders/:id",
     warranty: "/warranty",

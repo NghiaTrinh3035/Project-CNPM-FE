@@ -27,6 +27,7 @@ const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage").th
 const NotificationsPage = lazy(() => import("@/features/notifications/pages/NotificationsPage").then((m) => ({ default: m.NotificationsPage })));
 const CartPage = lazy(() => import("@/features/cart/pages/CartPage").then((m) => ({ default: m.CartPage })));
 const CheckoutPage = lazy(() => import("@/features/checkout/pages/CheckoutPage").then((m) => ({ default: m.CheckoutPage })));
+const CheckoutResultPage = lazy(() => import("@/features/checkout/pages/CheckoutResultPage").then((m) => ({ default: m.CheckoutResultPage })));
 const OrdersPage = lazy(() => import("@/features/orders/pages/OrdersPage").then((m) => ({ default: m.OrdersPage })));
 const OrderDetailPage = lazy(() => import("@/features/orders/pages/OrderDetailPage").then((m) => ({ default: m.OrderDetailPage })));
 const WarrantyPage = lazy(() => import("@/features/warranty/pages/WarrantyPage").then((m) => ({ default: m.WarrantyPage })));
@@ -126,6 +127,7 @@ export const AppRouter = () => (
             <Route path={ROUTES.customer.notifications} element={<NotificationsPage />} />
             <Route path={ROUTES.customer.cart} element={<CartPage />} />
             <Route path={ROUTES.customer.checkout} element={<CheckoutPage />} />
+            <Route path={ROUTES.customer.checkoutResult} element={<CheckoutResultPage />} />
             <Route path={ROUTES.customer.orders} element={<OrdersPage />} />
             <Route path={ROUTES.customer.orderDetail} element={<OrderDetailPage />} />
             <Route path={ROUTES.customer.warranty} element={<WarrantyPage />} />
