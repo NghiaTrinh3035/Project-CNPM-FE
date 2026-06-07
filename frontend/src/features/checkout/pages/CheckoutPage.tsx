@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { cartService } from "@/services/cartService";
 import { orderService } from "@/services/orderService";
-import type { QrPaymentSession } from "@/services/orderService";
+import type { PaymentSession } from "@/services/orderService";
 import { ROUTES } from "@/shared/constants/routes";
 import { useSession } from "@/shared/hooks/useSession";
 import { toCurrency } from "@/shared/lib/format";
@@ -33,7 +33,7 @@ export const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user } = useSession();
   const pollingLockRef = useRef(false);
-  const [qrSession, setQrSession] = useState<QrPaymentSession | null>(null);
+  const [qrSession, setQrSession] = useState<PaymentSession | null>(null);
   const [paymentMessage, setPaymentMessage] = useState("Đang chờ giao dịch chuyển khoản...");
   const [pollingEnabled, setPollingEnabled] = useState(false);
 
@@ -73,7 +73,7 @@ export const CheckoutPage = () => {
       if (!user) {
         return Promise.reject(new Error("Vui lòng đăng nhập trước khi thanh toán."));
       }
-      return orderService.createQrPaymentSession({
+      return orderService.createPaymentSession({
         userId: user.id,
         address: {
           fullName: values.fullName,
@@ -84,6 +84,7 @@ export const CheckoutPage = () => {
           detailAddress: values.detailAddress,
         },
         note: values.note,
+        method: "BANK_TRANSFER",
       });
     },
     onSuccess: (session) => {
@@ -100,7 +101,7 @@ export const CheckoutPage = () => {
       if (!qrSession) {
         return;
       }
-      await orderService.cancelQrPayment(qrSession.orderId);
+      await orderService.cancelPaymentSession(qrSession.orderId, "BANK_TRANSFER");
     },
     onSuccess: () => {
       setPollingEnabled(false);
@@ -123,7 +124,7 @@ export const CheckoutPage = () => {
       }
       pollingLockRef.current = true;
       try {
-        const result = await orderService.checkQrPayment(qrSession.orderId);
+        const result = await orderService.checkPayment(qrSession.orderId, "BANK_TRANSFER");
         if (stopped) {
           return;
         }
@@ -195,7 +196,9 @@ export const CheckoutPage = () => {
           {qrSession ? (
             <div className="space-y-4">
               <div className="flex justify-center">
-                <img src={qrSession.qrUrl} alt="Mã QR thanh toán" className="w-full max-w-xs rounded-xl border border-border/60 p-2" />
+                {qrSession.qrUrl && (
+                  <img src={qrSession.qrUrl} alt="Mã QR thanh toán" className="w-full max-w-xs rounded-xl border border-border/60 p-2" />
+                )}
               </div>
               <div className="space-y-2 rounded-xl border border-border/60 p-4 text-sm">
                 <p>
@@ -205,7 +208,7 @@ export const CheckoutPage = () => {
                   <span className="font-medium">Ngân hàng:</span> {qrSession.bankCode}
                 </p>
                 <p>
-                  <span className="font-medium">Số tiền:</span> {toCurrency(qrSession.amount)}
+                  <span className="font-medium">Số tiền:</span> {toCurrency(qrSession.amount ?? 0)}
                 </p>
                 <p>
                   <span className="font-medium">Nội dung chuyển khoản:</span> {qrSession.description}

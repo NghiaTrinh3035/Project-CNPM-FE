@@ -12,26 +12,28 @@ export interface PlaceOrderInput {
   note?: string;
 }
 
-export interface CreateQrPaymentInput {
+export interface CreatePaymentInput {
   userId: string;
   address: ShippingAddress;
   note?: string;
+  method: string;
 }
 
-export interface QrPaymentSession {
+export interface PaymentSession {
   orderId: string;
-  accountNumber: string;
-  bankCode: string;
-  amount: number;
-  description: string;
-  qrUrl: string;
+  accountNumber?: string;
+  bankCode?: string;
+  amount?: number;
+  description?: string;
+  qrUrl?: string;
+  paymentUrl?: string;
 }
 
-export type QrPaymentStatus = "PENDING" | "SUCCESS" | "WRONG_AMOUNT" | "CANCELLED";
+export type PaymentStatusEnum = "PENDING" | "SUCCESS" | "WRONG_AMOUNT" | "CANCELLED";
 
-export interface QrPaymentStatusResult {
+export interface PaymentStatusResult {
   orderId: string;
-  status: QrPaymentStatus;
+  status: PaymentStatusEnum;
   expectedAmount: number;
   receivedAmount: number | null;
   message: string;
@@ -128,31 +130,34 @@ const buildOrderPayload = async (input: { userId: string; address: ShippingAddre
 };
 
 export const orderService = {
-  async createQrPaymentSession(input: CreateQrPaymentInput): Promise<QrPaymentSession> {
+  async createPaymentSession(input: CreatePaymentInput): Promise<PaymentSession> {
     try {
       const payload = await buildOrderPayload(input);
-      const { data } = await axiosClient.post("/orders/qr/prepare", payload);
+      const { data } = await axiosClient.post("/orders/payment/prepare", { ...payload, method: input.method });
       const raw = data as Record<string, unknown>;
       return {
         orderId: String(raw.orderId ?? ""),
-        accountNumber: String(raw.accountNumber ?? ""),
-        bankCode: String(raw.bankCode ?? ""),
-        amount: Number(raw.amount ?? 0),
-        description: String(raw.description ?? ""),
-        qrUrl: String(raw.qrUrl ?? ""),
+        accountNumber: raw.accountNumber ? String(raw.accountNumber) : undefined,
+        bankCode: raw.bankCode ? String(raw.bankCode) : undefined,
+        amount: raw.amount ? Number(raw.amount) : undefined,
+        description: raw.description ? String(raw.description) : undefined,
+        qrUrl: raw.qrUrl ? String(raw.qrUrl) : undefined,
+        paymentUrl: raw.paymentUrl ? String(raw.paymentUrl) : undefined,
       };
     } catch (error) {
-      throw new Error(extractErrorMessage(error, "Không thể tạo mã QR thanh toán."));
+      throw new Error(extractErrorMessage(error, "Không thể tạo phiên thanh toán."));
     }
   },
 
-  async checkQrPayment(orderId: string): Promise<QrPaymentStatusResult> {
+  async checkPayment(orderId: string, method: string): Promise<PaymentStatusResult> {
     try {
-      const { data } = await axiosClient.post(`/orders/qr/${orderId}/verify`);
+      const { data } = await axiosClient.post(`/orders/payment/${orderId}/verify`, null, {
+        params: { method },
+      });
       const raw = data as Record<string, unknown>;
       return {
         orderId: String(raw.orderId ?? orderId),
-        status: String(raw.status ?? "PENDING") as QrPaymentStatus,
+        status: String(raw.status ?? "PENDING") as PaymentStatusEnum,
         expectedAmount: Number(raw.expectedAmount ?? 0),
         receivedAmount: raw.receivedAmount === null || raw.receivedAmount === undefined ? null : Number(raw.receivedAmount),
         message: String(raw.message ?? ""),
@@ -163,9 +168,11 @@ export const orderService = {
     }
   },
 
-  async cancelQrPayment(orderId: string): Promise<void> {
+  async cancelPaymentSession(orderId: string, method: string): Promise<void> {
     try {
-      await axiosClient.delete(`/orders/qr/${orderId}`);
+      await axiosClient.delete(`/orders/payment/${orderId}`, {
+        params: { method },
+      });
     } catch (error) {
       throw new Error(extractErrorMessage(error, "Không thể hủy phiên thanh toán."));
     }
