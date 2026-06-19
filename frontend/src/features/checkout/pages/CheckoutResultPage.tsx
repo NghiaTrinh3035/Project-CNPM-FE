@@ -4,25 +4,45 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import axiosClient from "@/api/axiosClient";
 
 export const CheckoutResultPage = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<"success" | "failed" | "loading">("loading");
 
   useEffect(() => {
-    const momoResultCode = searchParams.get("resultCode");
-    const vnpResponseCode = searchParams.get("vnp_ResponseCode");
-    const paypalCancel = searchParams.get("cancel");
+    const processPaymentReturn = async () => {
+      try {
+        const momoResultCode = searchParams.get("resultCode");
+        const vnpResponseCode = searchParams.get("vnp_ResponseCode");
+        const paypalCancel = searchParams.get("cancel");
+        const paypalToken = searchParams.get("token");
 
-    if (momoResultCode !== null) {
-      setStatus(momoResultCode === "0" ? "success" : "failed");
-    } else if (vnpResponseCode !== null) {
-      setStatus(vnpResponseCode === "00" ? "success" : "failed");
-    } else if (paypalCancel === "true") {
-      setStatus("failed");
-    } else {
-      setStatus("success");
-    }
+        if (momoResultCode !== null) {
+          await axiosClient.get(`/payment/momo-return?${searchParams.toString()}`);
+          setStatus("success");
+        } else if (vnpResponseCode !== null) {
+          await axiosClient.get(`/payment/vnpay-return?${searchParams.toString()}`);
+          setStatus("success");
+        } else if (paypalToken !== null) {
+          if (paypalCancel === "true") {
+            await axiosClient.get(`/payment/paypal/cancel?token=${paypalToken}`);
+            setStatus("failed");
+          } else {
+            await axiosClient.get(`/payment/paypal/capture?token=${paypalToken}`);
+            setStatus("success");
+          }
+        } else {
+          // Fallback if no known payment params
+          setStatus("success");
+        }
+      } catch (error) {
+        console.error("Payment verification failed:", error);
+        setStatus("failed");
+      }
+    };
+
+    processPaymentReturn();
   }, [searchParams]);
 
   if (status === "loading") {
