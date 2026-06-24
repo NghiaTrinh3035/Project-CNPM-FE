@@ -6,6 +6,7 @@ import { notificationService } from "@/services/notificationService";
 import { queryKeys } from "@/shared/constants/queryKeys";
 import { ROUTES } from "@/shared/constants/routes";
 import { useSession } from "@/shared/hooks/useSession";
+import { useWebSocket } from "@/shared/hooks/useWebSocket";
 import { toShortDate } from "@/shared/lib/format";
 import { Badge } from "@/shared/ui/badge";
 import {
@@ -26,6 +27,9 @@ export const NotificationDropdown = () => {
     queryFn: () => (user ? notificationService.listByUser(user.id) : Promise.resolve([])),
     enabled: Boolean(user),
   });
+
+  // Kích hoạt kết nối WebSocket để nhận thông báo realtime
+  useWebSocket();
 
   const markAsReadMutation = useMutation({
     mutationFn: (notificationId: string) => {

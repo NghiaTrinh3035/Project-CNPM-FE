@@ -7,6 +7,7 @@ import { EmptyState } from "@/shared/components/states/EmptyState";
 import { queryKeys } from "@/shared/constants/queryKeys";
 import { notificationService } from "@/services/notificationService";
 import { useSession } from "@/shared/hooks/useSession";
+import { useWebSocket } from "@/shared/hooks/useWebSocket";
 import { toShortDate } from "@/shared/lib/format";
 import type { NotificationType } from "@/shared/types/domain";
 import { Badge } from "@/shared/ui/badge";
@@ -38,6 +39,9 @@ export const NotificationsPage = () => {
     queryFn: () => (user ? notificationService.listByUser(user.id) : Promise.resolve([])),
     enabled: Boolean(user),
   });
+
+  // Kích hoạt kết nối WebSocket để nhận thông báo realtime
+  useWebSocket();
 
   const notifications = notificationsQuery.data ?? [];
   const unreadCount = notifications.filter((item) => !item.isRead).length;
