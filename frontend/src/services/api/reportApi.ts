@@ -146,4 +146,29 @@ export const reportApi = {
       bestSellerStats,
     };
   },
+
+  async exportExcel(params: Pick<ReportQueryParams, "fromDate" | "toDate"> = {}): Promise<void> {
+    try {
+      const response = await axiosClient.get(`${base}/export`, {
+        params: { ...params, type: "excel" },
+        responseType: "blob",
+      });
+      
+      const file = new Blob([response.data as BlobPart], { 
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+      });
+      
+      const fileURL = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = fileURL;
+      link.setAttribute("download", "report_doanh_thu.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(fileURL);
+    } catch (error) {
+      console.error("Lỗi khi tải file Excel", error);
+      throw error;
+    }
+  },
 };

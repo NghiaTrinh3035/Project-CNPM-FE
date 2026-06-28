@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ChartLine, ClipboardList, DollarSign, Package, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChartLine, ClipboardList, DollarSign, Package, ShieldCheck, Download } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
 import { reportApi } from "@/services/api/reportApi";
@@ -7,6 +7,8 @@ import { ORDER_STATUS_LABEL } from "@/shared/constants/labels";
 import { toCurrency } from "@/shared/lib/format";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Button } from "@/shared/ui/button";
+import { toast } from "sonner";
 
 export const OwnerDashboardPage = () => {
   const overviewQuery = useQuery({
@@ -23,7 +25,23 @@ export const OwnerDashboardPage = () => {
 
   return (
     <section className="space-y-5">
-      <h1 className="font-display text-3xl">Tổng quan Chủ cửa hàng</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-3xl">Tổng quan Chủ cửa hàng</h1>
+        <Button 
+          onClick={async () => {
+            try {
+              await reportApi.exportExcel();
+              toast.success("Tải báo cáo Excel thành công!");
+            } catch (error) {
+              toast.error("Tải báo cáo thất bại, vui lòng thử lại sau.");
+            }
+          }}
+          className="gap-2 bg-luxury-gold text-white hover:bg-luxury-gold/90"
+        >
+          <Download className="h-4 w-4" />
+          Xuất Báo Cáo Excel
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
