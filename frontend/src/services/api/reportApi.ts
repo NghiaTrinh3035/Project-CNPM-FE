@@ -171,4 +171,29 @@ export const reportApi = {
       throw error;
     }
   },
+
+  async exportPdf(params: Pick<ReportQueryParams, "fromDate" | "toDate"> = {}): Promise<void> {
+    try {
+      const response = await axiosClient.get(`${base}/export`, {
+        params: { ...params, type: "pdf" },
+        responseType: "blob",
+      });
+      
+      const file = new Blob([response.data as BlobPart], { 
+        type: "application/pdf" 
+      });
+      
+      const fileURL = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = fileURL;
+      link.setAttribute("download", "report_doanh_thu.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(fileURL);
+    } catch (error) {
+      console.error("Lỗi khi tải file PDF", error);
+      throw error;
+    }
+  },
 };

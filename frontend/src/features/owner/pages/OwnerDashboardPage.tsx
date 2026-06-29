@@ -27,20 +27,36 @@ export const OwnerDashboardPage = () => {
     <section className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Tổng quan Chủ cửa hàng</h1>
-        <Button 
-          onClick={async () => {
-            try {
-              await reportApi.exportExcel();
-              toast.success("Tải báo cáo Excel thành công!");
-            } catch (error) {
-              toast.error("Tải báo cáo thất bại, vui lòng thử lại sau.");
-            }
-          }}
-          className="gap-2 bg-luxury-gold text-white hover:bg-luxury-gold/90"
-        >
-          <Download className="h-4 w-4" />
-          Xuất Báo Cáo Excel
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={async () => {
+              try {
+                await reportApi.exportExcel();
+                toast.success("Tải báo cáo Excel thành công!");
+              } catch (error) {
+                toast.error("Tải báo cáo thất bại, vui lòng thử lại sau.");
+              }
+            }}
+            className="gap-2 bg-luxury-gold text-white hover:bg-luxury-gold/90"
+          >
+            <Download className="h-4 w-4" />
+            Xuất Excel
+          </Button>
+          <Button 
+            onClick={async () => {
+              try {
+                await reportApi.exportPdf();
+                toast.success("Tải báo cáo PDF thành công!");
+              } catch (error) {
+                toast.error("Tải báo cáo PDF thất bại, vui lòng thử lại sau.");
+              }
+            }}
+            className="gap-2 bg-rose-700 text-white hover:bg-rose-800"
+          >
+            <Download className="h-4 w-4" />
+            Xuất PDF
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
